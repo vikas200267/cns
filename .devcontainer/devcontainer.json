@@ -1,0 +1,26 @@
+{
+  "name": "Lab Control System",
+  "image": "mcr.microsoft.com/devcontainers/base:alpine-3.22",
+  "forwardPorts": [3000, 3001],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    },
+    "3001": {
+      "label": "Backend API",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "sudo apk add --no-cache nodejs npm && cd /workspaces/cns/backend && npm install && cd /workspaces/cns/frontend && npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

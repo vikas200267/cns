@@ -1,0 +1,11 @@
+# Allowed target IPs for lab testing
+# One IP per line, comments start with #
+
+# Metasploitable VM
+192.168.56.101
+
+# Kali VM
+192.168.56.102
+
+# Juice Shop
+192.168.56.103

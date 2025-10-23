@@ -1,0 +1,44 @@
+# Lab task runner container - isolated execution environment
+FROM ubuntu:22.04
+
+# Install required tools
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    nmap \
+    nikto \
+    tshark \
+    tcpdump \
+    curl \
+    dnsutils \
+    hping3 \
+    iptables \
+    ipset \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create unprivileged user
+RUN useradd -m -u 1000 -s /bin/bash labuser
+
+# Create directories
+RUN mkdir -p /artifacts /usr/local/bin/scripts /etc && \
+    chown -R labuser:labuser /artifacts
+
+# Copy scripts
+COPY scripts/* /usr/local/bin/scripts/
+RUN chmod +x /usr/local/bin/scripts/*
+
+# Copy allowed targets list
+COPY allowed_targets.txt /etc/lab_allowed_targets
+
+# Switch to unprivileged user
+USER labuser
+
+WORKDIR /artifacts
+
+# Entrypoint validates environment
+COPY entrypoint.sh /usr/local/bin/
+USER root
+RUN chmod +x /usr/local/bin/entrypoint.sh
+USER labuser
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

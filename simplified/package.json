@@ -1,0 +1,13 @@
+{
+  "name": "lab-control-simplified",
+  "version": "1.0.0",
+  "description": "Simplified Lab Control System",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.1"
+  }
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct IP Access</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CNS Application Access</h1>
+        <p>Since you're experiencing DNS resolution issues with the GitHub Codespaces URL, here are alternative methods to access the application:</p>
+        
+        <h2>Option 1: Use Simple Browser</h2>
+        <p>The most reliable method is to use VS Code's Simple Browser:</p>
+        <a class="button" href="http://localhost:3000" target="_blank">Open Frontend in Simple Browser</a>
+        <a class="button" href="http://localhost:3001" target="_blank">Open Backend in Simple Browser</a>
+        
+        <h2>Option 2: Try Direct IP Access</h2>
+        <p>We've confirmed the IP is 20.197.80.108, but direct HTTPS access requires proper SSL certificate handling.</p>
+        <p>You can try this link (may get certificate warnings):</p>
+        <a class="button" href="https://20.197.80.108" target="_blank">Try Direct IP Access</a>
+        
+        <h2>Option 3: Use our Proxy Server</h2>
+        <p>We've set up a local proxy server that attempts to forward requests:</p>
+        <a class="button" href="http://localhost:8080" target="_blank">Access via Local Proxy</a>
+        
+        <h2>Troubleshooting Steps</h2>
+        <p>If you continue experiencing DNS issues, try these steps:</p>
+        <ol>
+            <li>Edit your hosts file to manually map the domain:</li>
+            <pre>20.197.80.108 ominous-yodel-7v54g6x9pgpqhwqg7-3000.app.github.dev</pre>
+            <li>Use a different DNS server (Cloudflare 1.1.1.1 or Google 8.8.8.8)</li>
+            <li>Try a different network (mobile hotspot, etc.)</li>
+            <li>Try a different device</li>
+        </ol>
+    </div>
+</body>
+</html>

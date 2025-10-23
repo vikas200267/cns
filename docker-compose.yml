@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: lab-control-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - artifacts:/artifacts
+      - /var/run/docker.sock:/var/run/docker.sock  # For container management
+      - ./backend/logs:/app/logs
+    networks:
+      - labnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Lab runner image (built but not run as service)
+  # Used by backend to spawn task containers
+  lab-runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.runner
+    image: lab-runner:latest
+    # This service is just for building the image
+    # Actual containers are spawned by backend via Docker API
+    command: /bin/true
+    networks:
+      - labnet
+
+networks:
+  labnet:
+    driver: bridge
+    internal: false  # Set to true for complete isolation
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  artifacts:
+    driver: local

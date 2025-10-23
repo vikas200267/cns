@@ -1,0 +1,61 @@
+{
+  "nmap-scan": {
+    "enabled": true,
+    "script": "nmap-scan.sh",
+    "description": "Network port scan with service detection",
+    "requiredRole": "operator",
+    "sensitive": false
+  },
+  "nikto-scan": {
+    "enabled": true,
+    "script": "nikto-scan.sh",
+    "description": "Web vulnerability scanner",
+    "requiredRole": "operator",
+    "sensitive": false
+  },
+  "start-capture": {
+    "enabled": true,
+    "script": "start-capture.sh",
+    "description": "Start packet capture (60 seconds)",
+    "requiredRole": "operator",
+    "sensitive": false
+  },
+  "stop-capture": {
+    "enabled": true,
+    "script": "stop-capture.sh",
+    "description": "Stop active packet capture",
+    "requiredRole": "operator",
+    "sensitive": false
+  },
+  "list-captures": {
+    "enabled": true,
+    "script": "list-captures.sh",
+    "description": "List saved packet captures",
+    "requiredRole": "operator",
+    "sensitive": false
+  },
+  "ddos-attack": {
+    "enabled": true,
+    "script": "ddos-attack.sh",
+    "description": "Simulate DDoS attack (lab only)",
+    "requiredRole": "admin",
+    "sensitive": true,
+    "warning": "This will simulate a DDoS attack. Use only in isolated lab environment."
+  },
+  "ddos-mitigate": {
+    "enabled": true,
+    "script": "ddos-mitigate.sh",
+    "description": "Apply DDoS mitigation",
+    "requiredRole": "admin",
+    "sensitive": true,
+    "warning": "This will add iptables rules for DDoS mitigation."
+  },
+  "add-firewall": {
+    "enabled": true,
+    "script": "add-firewall.sh",
+    "description": "Configure basic firewall rules",
+    "requiredRole": "admin",
+    "sensitive": true,
+    "warning": "This will modify system firewall rules."
+  }
+}

@@ -1,0 +1,571 @@
+/**
+ * Lab Control Backend API Server
+ * 
+ * Provides secure, rate-limited access to whitelisted penetration testing tasks.
+ * All tasks execute in isolated Docker containers.
+ * 
+ * Security features:
+ * - API key authentication with roles
+ * - Target whitelisting
+ * - Task whitelisting
+ * - Rate limiting
+ * - Audit logging
+ * - Input validation
+ * - Container isolation
+ */
+
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const Docker = require('dockerode');
+const fs = require('fs').promises;
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const winston = require('winston');
+require('dotenv').config();
+
+const app = express();
+const docker = new Docker();
+let dockerAvailable = true;
+
+// Configuration
+const PORT = process.env.PORT || 3001;
+const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || '/artifacts';
+const AUDIT_LOG_PATH = process.env.AUDIT_LOG_PATH || './logs/audit.log';
+
+// Logger setup
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: AUDIT_LOG_PATH }),
+    new winston.transports.Console()
+  ]
+});
+
+// Middleware
+app.use(helmet());
+// Allow all origins for development in Codespaces
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(express.json());
+
+// Load configuration files
+let apiKeys = {};
+let tasks = {};
+let allowedTargets = [];
+
+async function loadConfig() {
+  try {
+    // Load API keys from environment
+    apiKeys = {
+      [process.env.API_KEY_OPERATOR]: { role: 'operator', id: 'operator-key-1' },
+      [process.env.API_KEY_ADMIN]: { role: 'admin', id: 'admin-key-1' }
+    };
+
+    // Load tasks whitelist
+    const tasksData = await fs.readFile('./tasks.json', 'utf8');
+    tasks = JSON.parse(tasksData);
+
+    // Load allowed targets
+    const targetsData = await fs.readFile('./allowed_targets.txt', 'utf8');
+    allowedTargets = targetsData
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'));
+
+    logger.info('Configuration loaded', {
+      taskCount: Object.keys(tasks).length,
+      targetCount: allowedTargets.length
+    });
+    // Ensure audit log directory exists
+    try {
+      await fs.mkdir(path.dirname(AUDIT_LOG_PATH), { recursive: true });
+    } catch (err) {
+      // ignore - we'll handle write errors later
+    }
+
+    // Check Docker availability (graceful fallback for environments without Docker)
+    try {
+      await docker.ping();
+      logger.info('Docker daemon reachable');
+    } catch (err) {
+      dockerAvailable = false;
+      logger.warn('Docker daemon not reachable - tasks will run in simulated mode', { error: err.message });
+    }
+    
+    // Initialize rate limiters after tasks are loaded
+    initializeRateLimiters();
+  } catch (error) {
+    logger.error('Failed to load configuration', { error: error.message });
+    process.exit(1);
+  }
+}
+
+// Authentication middleware
+function authenticate(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!apiKey || !apiKeys[apiKey]) {
+    logger.warn('Authentication failed', {
+      ip: req.ip,
+      path: req.path
+    });
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  req.auth = apiKeys[apiKey];
+  next();
+}
+
+// Authorization middleware
+function requireRole(role) {
+  return (req, res, next) => {
+    if (req.auth.role !== role && req.auth.role !== 'admin') {
+      logger.warn('Authorization failed', {
+        requiredRole: role,
+        actualRole: req.auth.role,
+        keyId: req.auth.id,
+        ip: req.ip
+      });
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
+}
+
+// Rate limiting - configurable per task
+const rateLimiters = {};
+
+function createRateLimiter(taskId) {
+  const limitConfig = process.env[`RATE_LIMIT_${taskId.toUpperCase().replace('-', '_')}`] || '10/hour';
+  const [max, window] = limitConfig.split('/');
+  const windowMs = window === 'hour' ? 60 * 60 * 1000 : 60 * 1000;
+
+  return rateLimit({
+    windowMs,
+    max: parseInt(max),
+    keyGenerator: (req) => req.auth.id,
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        keyId: req.auth.id,
+        taskId: req.body.taskId,
+        ip: req.ip
+      });
+      res.status(429).json({
+        error: 'Rate limit exceeded',
+        taskId: req.body.taskId,
+        limit: limitConfig
+      });
+    }
+  });
+}
+
+// Initialize rate limiters for all tasks (called after config is loaded)
+function initializeRateLimiters() {
+  Object.keys(tasks).forEach(taskId => {
+    rateLimiters[taskId] = createRateLimiter(taskId);
+  });
+}
+
+function getRateLimiter(taskId) {
+  return rateLimiters[taskId] || createRateLimiter(taskId);
+}
+
+// Input validation
+function validateTarget(target) {
+  // Basic IP format validation
+  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (!ipRegex.test(target)) {
+    return { valid: false, error: 'Invalid IP format' };
+  }
+
+  // Check against whitelist
+  if (!allowedTargets.includes(target)) {
+    return { valid: false, error: 'Target not in allowed list' };
+  }
+
+  return { valid: true };
+}
+
+function validateTaskId(taskId) {
+  // Prevent injection - only allow alphanumeric and hyphens
+  if (!/^[a-z0-9-]+$/.test(taskId)) {
+    return { valid: false, error: 'Invalid task ID format' };
+  }
+
+  // Check against whitelist
+  if (!tasks[taskId]) {
+    return { valid: false, error: 'Task not in whitelist' };
+  }
+
+  // Check if task is enabled
+  if (!tasks[taskId].enabled) {
+    return { valid: false, error: 'Task is disabled' };
+  }
+
+  return { valid: true };
+}
+
+// Task execution
+async function executeTask(taskId, target, taskInstanceId, auth) {
+  const task = tasks[taskId];
+  const startTime = Date.now();
+
+  logger.info('Starting task execution', {
+    taskInstanceId,
+    taskId,
+    target,
+    keyId: auth.id,
+    script: task.script
+  });
+
+  try {
+    if (!dockerAvailable) {
+      // Simulate task execution in environments without Docker (development / Codespaces)
+      const duration = (Date.now() - startTime) / 1000;
+      const output = `SIMULATED_EXECUTION: ${task.script} ${target}\nARTIFACT: ${ARTIFACTS_PATH}/simulated-${taskInstanceId}.txt\nSimulated output for task ${taskId}`;
+      const artifactPath = `${ARTIFACTS_PATH}/simulated-${taskInstanceId}.txt`;
+
+      const auditEntry = {
+        timestamp: new Date().toISOString(),
+        taskInstanceId,
+        apiKeyId: auth.id,
+        taskId,
+        target,
+        startedAt: new Date(startTime).toISOString(),
+        finishedAt: new Date().toISOString(),
+        exitCode: 0,
+        duration,
+        artifactPath,
+        success: true,
+        simulated: true
+      };
+
+      // Ensure artifacts path exists for simulation
+      try {
+        await fs.mkdir(ARTIFACTS_PATH, { recursive: true });
+        await fs.writeFile(artifactPath, `Simulated artifact for ${taskInstanceId}\n`);
+      } catch (err) {
+        logger.warn('Failed to write simulated artifact', { error: err.message });
+      }
+
+      // Append to audit log
+      try {
+        await fs.appendFile(AUDIT_LOG_PATH, JSON.stringify(auditEntry) + '\n');
+      } catch (err) {
+        logger.warn('Failed to append to audit log', { error: err.message });
+      }
+
+      logger.info('Simulated task completed', auditEntry);
+
+      return {
+        success: true,
+        exitCode: 0,
+        output,
+        artifactPath,
+        duration
+      };
+    }
+
+    // Real Docker-backed execution
+    const container = await docker.createContainer({
+      Image: 'lab-runner:latest',
+      Cmd: [task.script, target],
+      name: `lab-task-${taskInstanceId}`,
+      HostConfig: {
+        AutoRemove: true,
+        NetworkMode: process.env.DOCKER_NETWORK || 'cns_labnet',
+        Memory: 256 * 1024 * 1024, // 256MB
+        NanoCpus: 500000000, // 0.5 CPU
+        Binds: [
+          `${ARTIFACTS_PATH}:/artifacts`
+        ]
+      },
+      Labels: {
+        'lab-control.task-id': taskId,
+        'lab-control.instance-id': taskInstanceId,
+        'lab-control.target': target
+      }
+    });
+
+    // Start and wait for completion
+    await container.start();
+    const result = await container.wait();
+
+    // Get logs
+    const logs = await container.logs({
+      stdout: true,
+      stderr: true,
+      follow: false
+    });
+
+    const output = logs.toString('utf8');
+    const duration = (Date.now() - startTime) / 1000;
+
+    // Parse artifact path from output
+    const artifactMatch = output.match(/ARTIFACT:\s*(.+)/);
+    const artifactPath = artifactMatch ? artifactMatch[1].trim() : null;
+
+    const auditEntry = {
+      timestamp: new Date().toISOString(),
+      taskInstanceId,
+      apiKeyId: auth.id,
+      taskId,
+      target,
+      startedAt: new Date(startTime).toISOString(),
+      finishedAt: new Date().toISOString(),
+      exitCode: result.StatusCode,
+      duration,
+      artifactPath,
+      success: result.StatusCode === 0
+    };
+
+    // Append to audit log
+    await fs.appendFile(
+      AUDIT_LOG_PATH,
+      JSON.stringify(auditEntry) + '\n'
+    );
+
+    logger.info('Task completed', auditEntry);
+
+    return {
+      success: result.StatusCode === 0,
+      exitCode: result.StatusCode,
+      output,
+      artifactPath,
+      duration
+    };
+
+  } catch (error) {
+    logger.error('Task execution failed', {
+      taskInstanceId,
+      taskId,
+      target,
+      error: error.message
+    });
+
+    throw error;
+  }
+}
+
+// API Endpoints
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Execute task
+app.post('/api/tasks', authenticate, async (req, res) => {
+  const { taskId, target, confirmed } = req.body;
+
+  // Validate inputs
+  const taskValidation = validateTaskId(taskId);
+  if (!taskValidation.valid) {
+    logger.warn('Invalid task ID', {
+      taskId,
+      keyId: req.auth.id,
+      error: taskValidation.error
+    });
+    return res.status(400).json({ error: taskValidation.error });
+  }
+
+  const targetValidation = validateTarget(target);
+  if (!targetValidation.valid) {
+    logger.warn('Invalid target', {
+      target,
+      keyId: req.auth.id,
+      error: targetValidation.error
+    });
+    return res.status(403).json({ error: targetValidation.error });
+  }
+
+  const task = tasks[taskId];
+
+  // Check role requirements
+  if (task.requiredRole === 'admin' && req.auth.role !== 'admin') {
+    logger.warn('Insufficient role for task', {
+      taskId,
+      requiredRole: task.requiredRole,
+      actualRole: req.auth.role,
+      keyId: req.auth.id
+    });
+    return res.status(403).json({
+      error: 'Admin role required for this task'
+    });
+  }
+
+  // Require confirmation for sensitive tasks
+  if (task.sensitive && !confirmed) {
+    return res.status(400).json({
+      error: 'Confirmation required for sensitive task',
+      taskId,
+      warning: task.warning
+    });
+  }
+
+  // Apply rate limiting
+  const limiter = getRateLimiter(taskId);
+  limiter(req, res, async () => {
+    const taskInstanceId = `task_${uuidv4().split('-')[0]}`;
+
+    try {
+      const result = await executeTask(taskId, target, taskInstanceId, req.auth);
+
+      res.json({
+        success: result.success,
+        taskInstanceId,
+        output: result.output,
+        artifactPath: result.artifactPath,
+        exitCode: result.exitCode,
+        duration: result.duration
+      });
+
+    } catch (error) {
+      logger.error('Task execution error', {
+        taskInstanceId,
+        error: error.message
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Task execution failed',
+        details: error.message
+      });
+    }
+  });
+});
+
+// Get audit logs (admin only)
+app.get('/api/logs', authenticate, requireRole('admin'), async (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+
+  try {
+    const logData = await fs.readFile(AUDIT_LOG_PATH, 'utf8');
+    const logs = logData
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => JSON.parse(line))
+      .slice(-limit);
+
+    res.json({
+      logs,
+      count: logs.length
+    });
+
+  } catch (error) {
+    logger.error('Failed to read audit logs', { error: error.message });
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
+});
+
+// Kill running task (admin only)
+app.post('/api/tasks/kill', authenticate, requireRole('admin'), async (req, res) => {
+  const { taskInstanceId } = req.body;
+
+  if (!taskInstanceId) {
+    return res.status(400).json({ error: 'taskInstanceId required' });
+  }
+
+  try {
+    const containers = await docker.listContainers({
+      filters: {
+        label: [`lab-control.instance-id=${taskInstanceId}`]
+      }
+    });
+
+    if (containers.length === 0) {
+      return res.status(404).json({
+        error: 'Task not found or already completed',
+        taskInstanceId
+      });
+    }
+
+    const container = docker.getContainer(containers[0].Id);
+    await container.kill();
+
+    logger.warn('Task killed by admin', {
+      taskInstanceId,
+      keyId: req.auth.id
+    });
+
+    res.json({
+      success: true,
+      message: 'Task killed',
+      taskInstanceId
+    });
+
+  } catch (error) {
+    logger.error('Failed to kill task', {
+      taskInstanceId,
+      error: error.message
+    });
+
+    res.status(500).json({
+      error: 'Failed to kill task',
+      details: error.message
+    });
+  }
+});
+
+// List artifacts
+app.get('/api/artifacts', authenticate, async (req, res) => {
+  try {
+    const files = await fs.readdir(ARTIFACTS_PATH);
+    const artifacts = await Promise.all(
+      files.map(async (file) => {
+        const filePath = path.join(ARTIFACTS_PATH, file);
+        const stats = await fs.stat(filePath);
+        return {
+          name: file,
+          size: stats.size,
+          created: stats.birthtime,
+          modified: stats.mtime
+        };
+      })
+    );
+
+    res.json({ artifacts });
+
+  } catch (error) {
+    logger.error('Failed to list artifacts', { error: error.message });
+    res.status(500).json({ error: 'Failed to list artifacts' });
+  }
+});
+
+// Graceful shutdown
+function shutdown() {
+  logger.info('Shutting down gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+// Start server
+let server;
+loadConfig().then(() => {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    logger.info(`Lab Control API listening on port ${PORT}`);
+  });
+});
