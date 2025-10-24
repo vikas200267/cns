@@ -210,12 +210,105 @@ const LabControlApp = () => {
             'x-api-key': apiKey,
             'Content-Type': 'application/json'
           },
-          timeout: 960000  // 16 minutes timeout (960 seconds) to allow nikto scan to complete
+          timeout: 10000  // 10 seconds for initial response (async tasks return immediately)
         }
       );
 
       const result = response.data;
       
+      // Handle async tasks (nikto, nmap)
+      if (result.async && result.status === 'running') {
+        const taskInstanceId = result.taskInstanceId;
+        setOutput(`Task started: ${taskInstanceId}\nStatus: Running...\n\nPolling for results every 3 seconds...`);
+        
+        toast.update(toastId, {
+          render: `${task.name} started - monitoring progress...`,
+          type: 'info',
+          isLoading: true
+        });
+        
+        // Poll for task completion
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusResponse = await axios.get(
+              `${API_URL}/api/tasks/${taskInstanceId}`,
+              {
+                headers: { 'x-api-key': apiKey }
+              }
+            );
+            
+            const status = statusResponse.data;
+            
+            if (status.status === 'completed') {
+              clearInterval(pollInterval);
+              setIsExecuting(false);
+              
+              let outputText = `Task ID: ${taskInstanceId}\n`;
+              outputText += `Status: ${status.success ? 'Success' : 'Failed'}\n`;
+              outputText += `Exit Code: ${status.exitCode}\n`;
+              outputText += `Duration: ${status.duration?.toFixed(2)}s\n\n`;
+              
+              if (status.artifactPath) {
+                const artifact = status.artifactPath;
+                if (artifact.startsWith('http')) {
+                  outputText += `Artifact: ${artifact}\n\n`;
+                } else {
+                  outputText += `Artifact path: ${artifact}\n\n`;
+                }
+              }
+              
+              outputText += `Output:\n${status.output}`;
+              setOutput(outputText);
+              loadLogs();
+              
+              toast.update(toastId, {
+                render: `${task.name} completed successfully!`,
+                type: 'success',
+                isLoading: false,
+                autoClose: 3000,
+                icon: '✅'
+              });
+            } else if (status.status === 'failed') {
+              clearInterval(pollInterval);
+              setIsExecuting(false);
+              
+              setOutput(`Task ID: ${taskInstanceId}\nStatus: Failed\nError: ${status.error}`);
+              
+              toast.update(toastId, {
+                render: `${task.name} failed`,
+                type: 'error',
+                isLoading: false,
+                autoClose: 5000,
+                icon: '❌'
+              });
+            } else {
+              // Still running, update output
+              const elapsed = Math.floor((Date.now() - status.startTime) / 1000);
+              setOutput(`Task started: ${taskInstanceId}\nStatus: Running...\nElapsed: ${elapsed}s\n\nTask is executing in the background. Results will appear when complete.`);
+            }
+          } catch (pollError) {
+            console.error('Poll error:', pollError);
+          }
+        }, 3000);  // Poll every 3 seconds
+        
+        // Set a safety timeout to stop polling after 20 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          if (isExecuting) {
+            setIsExecuting(false);
+            toast.update(toastId, {
+              render: 'Task timeout - check logs for status',
+              type: 'warning',
+              isLoading: false,
+              autoClose: 5000
+            });
+          }
+        }, 1200000);  // 20 minutes
+        
+        return;
+      }
+      
+      // Handle synchronous tasks
       let outputText = `Task ID: ${result.taskInstanceId}\n`;
       outputText += `Status: ${result.success ? 'Success' : 'Failed'}\n`;
       outputText += `Exit Code: ${result.exitCode}\n`;

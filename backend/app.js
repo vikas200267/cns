@@ -29,6 +29,9 @@ require('dotenv').config();
 
 const execAsync = promisify(exec);
 
+// In-memory task status storage for async execution
+const runningTasks = new Map();
+
 const app = express();
 const docker = new Docker();
 let dockerAvailable = true;
@@ -481,7 +484,59 @@ app.post('/api/tasks', authenticate, async (req, res) => {
   const limiter = getRateLimiter(taskId);
   limiter(req, res, async () => {
     const taskInstanceId = `task_${uuidv4().split('-')[0]}`;
+    
+    // For long-running tasks, use async mode
+    const longRunningTasks = ['nikto-scan', 'nmap-scan'];
+    const isAsync = longRunningTasks.includes(taskId);
 
+    if (isAsync) {
+      // Start task in background
+      runningTasks.set(taskInstanceId, {
+        taskId,
+        target,
+        status: 'running',
+        startTime: Date.now(),
+        output: '',
+        progress: 0
+      });
+
+      // Execute task asynchronously
+      executeTask(taskId, target, taskInstanceId, req.auth)
+        .then(result => {
+          runningTasks.set(taskInstanceId, {
+            taskId,
+            target,
+            status: 'completed',
+            startTime: runningTasks.get(taskInstanceId).startTime,
+            endTime: Date.now(),
+            output: result.output,
+            artifactPath: result.artifactPath,
+            exitCode: result.exitCode,
+            duration: result.duration,
+            success: result.success
+          });
+        })
+        .catch(error => {
+          runningTasks.set(taskInstanceId, {
+            taskId,
+            target,
+            status: 'failed',
+            startTime: runningTasks.get(taskInstanceId).startTime,
+            endTime: Date.now(),
+            error: error.message
+          });
+        });
+
+      // Immediately return task ID
+      return res.json({
+        async: true,
+        taskInstanceId,
+        status: 'running',
+        message: 'Task started. Use /api/tasks/:id to check status'
+      });
+    }
+
+    // Synchronous execution for quick tasks
     try {
       const result = await executeTask(taskId, target, taskInstanceId, req.auth);
 
@@ -507,6 +562,19 @@ app.post('/api/tasks', authenticate, async (req, res) => {
       });
     }
   });
+});
+
+// Get task status (for async tasks)
+app.get('/api/tasks/:taskInstanceId', authenticate, (req, res) => {
+  const { taskInstanceId } = req.params;
+  
+  const taskStatus = runningTasks.get(taskInstanceId);
+  
+  if (!taskStatus) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  res.json(taskStatus);
 });
 
 // Get audit logs (admin only)
