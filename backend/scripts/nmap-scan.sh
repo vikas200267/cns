@@ -14,8 +14,13 @@ echo "  XML: $OUTPUT_FILE"
 echo "  TXT: $OUTPUT_TXT"
 echo ""
 
+# Ensure artifacts directory exists
+mkdir -p "$ARTIFACTS_PATH"
+
 # Run nmap with safe options
+# Using --version-intensity 0 for faster scanning without NSE scripts
 nmap -sV \
+     --version-intensity 0 \
      --top-ports 100 \
      --max-retries 1 \
      --host-timeout 5m \

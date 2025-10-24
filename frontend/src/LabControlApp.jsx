@@ -98,22 +98,6 @@ const LabControlApp = () => {
         icon: '📡',
         role: 'operator',
         sensitive: false
-      },
-      {
-        id: 'stop-capture',
-        name: 'Stop Capture',
-        description: 'Stop active capture',
-        icon: '⏹️',
-        role: 'operator',
-        sensitive: false
-      },
-      {
-        id: 'list-captures',
-        name: 'List Captures',
-        description: 'Show saved captures',
-        icon: '📋',
-        role: 'operator',
-        sensitive: false
       }
     ];
     setTasks(defaultTasks);

@@ -20,20 +20,6 @@
     "requiredRole": "operator",
     "sensitive": false
   },
-  "stop-capture": {
-    "enabled": true,
-    "script": "stop-capture.sh",
-    "description": "Stop active packet capture",
-    "requiredRole": "operator",
-    "sensitive": false
-  },
-  "list-captures": {
-    "enabled": true,
-    "script": "list-captures.sh",
-    "description": "List saved packet captures",
-    "requiredRole": "operator",
-    "sensitive": false
-  },
   "ddos-attack": {
     "enabled": true,
     "script": "ddos-attack.sh",

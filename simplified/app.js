@@ -35,13 +35,6 @@ const TASKS = {
     description: 'Web vulnerability scanner',
     requiredRole: 'operator',
     sensitive: false
-  },
-  'list-captures': {
-    enabled: true,
-    script: 'list-captures.sh',
-    description: 'List saved packet captures',
-    requiredRole: 'operator',
-    sensitive: false
   }
 };
 
@@ -367,12 +360,6 @@ async function setupFiles() {
         name: 'Nikto Scan',
         description: 'Web vulnerability scanner',
         icon: '🌐'
-      },
-      {
-        id: 'list-captures',
-        name: 'List Captures',
-        description: 'Show saved captures',
-        icon: '📋'
       }
     ];
 

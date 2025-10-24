@@ -66,7 +66,7 @@ echo "------------------------------"
 response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
     -H "Content-Type: application/json" \
     -H "x-api-key: $OP_KEY" \
-    -d '{"taskId": "list-captures", "target": "192.168.56.101"}')
+    -d '{"taskId": "start-capture", "target": "192.168.56.101"}')
 http_code=$(echo "$response" | tail -n1)
 
 if [ "$http_code" == "200" ]; then
@@ -79,7 +79,7 @@ fi
 response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
     -H "Content-Type: application/json" \
     -H "x-api-key: invalid_key_12345" \
-    -d '{"taskId": "list-captures", "target": "192.168.56.101"}')
+    -d '{"taskId": "start-capture", "target": "192.168.56.101"}')
 http_code=$(echo "$response" | tail -n1)
 
 if [ "$http_code" == "401" ]; then
@@ -92,7 +92,7 @@ fi
 response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
     -H "Content-Type: application/json" \
     -H "x-api-key: $ADMIN_KEY" \
-    -d '{"taskId": "list-captures", "target": "192.168.56.101"}')
+    -d '{"taskId": "start-capture", "target": "192.168.56.101"}')
 http_code=$(echo "$response" | tail -n1)
 
 if [ "$http_code" == "200" ]; then
@@ -110,7 +110,7 @@ echo "----------------------------"
 response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
     -H "Content-Type: application/json" \
     -H "x-api-key: $OP_KEY" \
-    -d '{"taskId": "list-captures", "target": "192.168.56.101"}')
+    -d '{"taskId": "start-capture", "target": "192.168.56.101"}')
 http_code=$(echo "$response" | tail -n1)
 
 if [ "$http_code" == "200" ]; then
@@ -123,7 +123,7 @@ fi
 response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
     -H "Content-Type: application/json" \
     -H "x-api-key: $OP_KEY" \
-    -d '{"taskId": "list-captures", "target": "8.8.8.8"}')
+    -d '{"taskId": "start-capture", "target": "8.8.8.8"}')
 http_code=$(echo "$response" | tail -n1)
 body=$(echo "$response" | head -n-1)
 
@@ -139,7 +139,7 @@ echo ""
 echo "TEST 5: Task Execution (All Operator Tasks)"
 echo "--------------------------------------------"
 
-tasks=("nmap-scan" "nikto-scan" "list-captures" "start-capture" "stop-capture")
+tasks=("nmap-scan" "nikto-scan" "start-capture")
 for task in "${tasks[@]}"; do
     response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
         -H "Content-Type: application/json" \
@@ -244,7 +244,7 @@ for i in {1..5}; do
     response=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/tasks \
         -H "Content-Type: application/json" \
         -H "x-api-key: $OP_KEY" \
-        -d '{"taskId": "list-captures", "target": "192.168.56.101"}')
+        -d '{"taskId": "start-capture", "target": "192.168.56.101"}')
     http_code=$(echo "$response" | tail -n1)
     
     if [ "$http_code" == "429" ]; then
@@ -276,7 +276,7 @@ fi
 response=$(curl -s -X POST $API_URL/api/tasks \
     -H "Content-Type: application/json" \
     -H "x-api-key: $OP_KEY" \
-    -d '{"taskId": "list-captures", "target": "192.168.56.101"}')
+    -d '{"taskId": "start-capture", "target": "192.168.56.101"}')
 
 task_id=$(echo $response | jq -r '.taskInstanceId')
 if [ "$task_id" != "null" ]; then

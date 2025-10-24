@@ -3,17 +3,22 @@
 set -euo pipefail
 
 TARGET="$1"
+PORT="${2:-80}"  # Default to port 80 if not specified
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 ARTIFACTS_PATH="${ARTIFACTS_PATH:-/workspaces/cns/artifacts}"
 OUTPUT_FILE="${ARTIFACTS_PATH}/nikto-${TARGET}-${TIMESTAMP}.txt"
 
-echo "Starting nikto scan of http://$TARGET"
+echo "Starting nikto scan of http://$TARGET:$PORT"
 echo "Output: $OUTPUT_FILE"
 echo ""
 
+# Ensure artifacts directory exists
+mkdir -p "$ARTIFACTS_PATH"
+
 # Run nikto with timeout and throttling
 timeout 120 /usr/bin/nikto.pl \
-    -host "http://$TARGET" \
+    -host "$TARGET" \
+    -port "$PORT" \
     -timeout 10 \
     -maxtime 120 \
     -output "$OUTPUT_FILE" 2>&1 || true

@@ -6,6 +6,10 @@
 192.168.56.102
 192.168.56.103
 
+# Localhost (for Juice Shop testing)
+127.0.0.1
+localhost
+
 # Public DNS Servers (for testing)
 8.8.8.8
 8.8.4.4

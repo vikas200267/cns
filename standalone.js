@@ -35,23 +35,9 @@ const TASKS = {
     requiredRole: 'operator',
     sensitive: false
   },
-  'list-captures': {
-    name: 'List Captures',
-    description: 'List saved packet captures',
-    enabled: true,
-    requiredRole: 'operator',
-    sensitive: false
-  },
   'start-capture': {
     name: 'Start Capture',
     description: 'Start packet capture (60 seconds)',
-    enabled: true,
-    requiredRole: 'operator',
-    sensitive: false
-  },
-  'stop-capture': {
-    name: 'Stop Capture',
-    description: 'Stop active packet capture',
     enabled: true,
     requiredRole: 'operator',
     sensitive: false
@@ -202,28 +188,12 @@ Nmap done: 1 IP address (1 host up) scanned in 0.08 seconds`;
       artifactPath = `/artifacts/${taskInstanceId}-nikto-scan.txt`;
       break;
 
-    case 'list-captures':
-      output = `PCAP FILES IN CAPTURE DIRECTORY:
-${new Date().toLocaleDateString()}-capture-001.pcap  (Size: 24.5 MB)
-${new Date().toLocaleDateString()}-capture-002.pcap  (Size: 12.3 MB)
-${new Date().toLocaleDateString()}-capture-003.pcap  (Size: 8.7 MB)`;
-      break;
-
     case 'start-capture':
       output = `Starting packet capture on eth0
 Target: ${target}
 Duration: 60 seconds
 Capture ID: cap_${Math.floor(Math.random() * 1000)}
 Status: Running`;
-      break;
-
-    case 'stop-capture':
-      output = `Stopping active captures...
-Found 1 active capture
-Stopped capture on eth0
-Packets captured: ${Math.floor(Math.random() * 10000 + 1000)}
-Capture saved to: ${new Date().toLocaleDateString()}-capture-003.pcap`;
-      artifactPath = `/artifacts/${new Date().toLocaleDateString()}-capture-003.pcap`;
       break;
 
     case 'ddos-attack':
