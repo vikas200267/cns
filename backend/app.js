@@ -263,7 +263,7 @@ async function executeTask(taskId, target, taskInstanceId, auth) {
 
       try {
         const { stdout, stderr } = await execAsync(command, {
-          timeout: 300000, // 5 minutes timeout
+          timeout: 1200000, // 20 minutes timeout (allows nikto 15min scan + buffer)
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
           env: {
             ...process.env,
@@ -630,4 +630,9 @@ loadConfig().then(() => {
   server = app.listen(PORT, '0.0.0.0', () => {
     logger.info(`Lab Control API listening on port ${PORT}`);
   });
+  
+  // Set server timeout to 20 minutes for long-running tasks like nikto scan
+  server.timeout = 1200000; // 20 minutes in milliseconds
+  server.keepAliveTimeout = 1200000;
+  server.headersTimeout = 1210000; // Slightly higher than keepAliveTimeout
 });
