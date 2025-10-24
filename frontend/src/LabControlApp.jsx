@@ -98,6 +98,33 @@ const LabControlApp = () => {
         icon: '📡',
         role: 'operator',
         sensitive: false
+      },
+      {
+        id: 'ddos-attack',
+        name: 'DDoS Attack',
+        description: 'Simulate DDoS attack (Admin)',
+        icon: '⚡',
+        role: 'admin',
+        sensitive: true,
+        warning: 'This will simulate a DDoS attack. Use only in isolated lab environment.'
+      },
+      {
+        id: 'ddos-mitigate',
+        name: 'DDoS Mitigation',
+        description: 'Apply DDoS mitigation (Admin)',
+        icon: '🛡️',
+        role: 'admin',
+        sensitive: true,
+        warning: 'This will add iptables rules for DDoS mitigation.'
+      },
+      {
+        id: 'add-firewall',
+        name: 'Add Firewall',
+        description: 'Configure firewall rules (Admin)',
+        icon: '🔥',
+        role: 'admin',
+        sensitive: true,
+        warning: 'This will modify system firewall rules.'
       }
     ];
     setTasks(defaultTasks);
@@ -378,16 +405,28 @@ const LabControlApp = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={`
-                    p-4 rounded-lg border text-left transition-all duration-200
+                    p-4 rounded-lg border text-left transition-all duration-200 relative
                     ${isExecuting 
                       ? 'bg-gray-800 border-gray-700 cursor-not-allowed opacity-50'
-                      : 'bg-gray-800 border-gray-700 hover:border-cyan-500 hover:bg-gray-700 hover:shadow-lg hover:shadow-cyan-500/20'
+                      : task.sensitive
+                        ? 'bg-gray-800 border-red-700 hover:border-red-500 hover:bg-gray-700 hover:shadow-lg hover:shadow-red-500/20'
+                        : 'bg-gray-800 border-gray-700 hover:border-cyan-500 hover:bg-gray-700 hover:shadow-lg hover:shadow-cyan-500/20'
                     }
                   `}
                 >
+                  {task.sensitive && (
+                    <div className="absolute top-2 right-2">
+                      <ShieldExclamationIcon className="w-4 h-4 text-red-500" />
+                    </div>
+                  )}
                   <div className="text-2xl mb-2 transform transition-transform group-hover:scale-110">{task.icon}</div>
                   <h3 className="font-medium mb-1 text-cyan-50">{task.name}</h3>
                   <p className="text-sm text-gray-400 group-hover:text-gray-300">{task.description}</p>
+                  {task.role === 'admin' && (
+                    <span className="inline-block mt-2 px-2 py-1 text-xs bg-red-900 text-red-300 rounded">
+                      Admin Only
+                    </span>
+                  )}
                 </motion.button>
               ))}
             </div>

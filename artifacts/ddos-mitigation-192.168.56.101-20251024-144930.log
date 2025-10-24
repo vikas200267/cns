@@ -1,0 +1,22 @@
+Applying DDoS mitigation for 192.168.56.101
+Timestamp: Fri Oct 24 14:49:30 UTC 2025
+
+=== DDoS Mitigation Rules (Simulated) ===
+
+1. Rate limiting for HTTP traffic:
+   iptables -A INPUT -p tcp --dport 80 -m limit --limit 25/minute --limit-burst 100 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 80 -j DROP
+
+2. Connection tracking rules:
+   iptables -A INPUT -p tcp -m state --state NEW -m limit --limit 50/second --limit-burst 50 -j ACCEPT
+
+3. SYN flood protection:
+   iptables -A INPUT -p tcp --syn -m limit --limit 1/second -j ACCEPT
+
+4. Drop invalid packets:
+   iptables -A INPUT -m state --state INVALID -j DROP
+
+Status: Rules configured successfully (simulation mode)
+
+NOTE: In production, these rules would be applied with root privileges
+      using: sudo iptables [commands]

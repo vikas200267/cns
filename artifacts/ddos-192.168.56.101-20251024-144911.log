@@ -1,0 +1,12 @@
+Starting DDoS simulation against 192.168.56.101
+Simulation Type: SYN flood simulation
+Duration: 10 seconds
+Target: 192.168.56.101:80
+
+[Fri Oct 24 14:49:11 UTC 2025] Starting simulated attack...
+
+[Fri Oct 24 14:49:21 UTC 2025] Simulation completed
+Status: ~100 connection attempts sent
+Protocol: TCP SYN to port 80
+
+NOTE: This is a SIMULATED attack for lab/training purposes only

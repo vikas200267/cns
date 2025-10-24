@@ -50,6 +50,14 @@ const TASKS = {
     sensitive: true,
     warning: 'This will simulate a DDoS attack. Use only in isolated lab environment.'
   },
+  'ddos-mitigate': {
+    name: 'DDoS Mitigation',
+    description: 'Apply DDoS mitigation',
+    enabled: true,
+    requiredRole: 'admin',
+    sensitive: true,
+    warning: 'This will add iptables rules for DDoS mitigation.'
+  },
   'add-firewall': {
     name: 'Add Firewall Rules',
     description: 'Configure basic firewall rules',
@@ -198,23 +206,56 @@ Status: Running`;
 
     case 'ddos-attack':
       output = `[WARNING] Running DDoS simulation against ${target}
-Using protocol: UDP
-Packet size: 64 bytes
+Using protocol: TCP SYN Flood
+Target Port: 80
 Duration: 10 seconds
-Rate: 100 packets/second (simulated)
+Packets Sent: ~100 connection attempts
 Status: Completed
-Traffic generated: ~1000 packets
-Target response: ICMP unreachable messages observed`;
+Traffic generated: Multiple rapid SYN packets
+Note: This is a SIMULATED attack for lab/training purposes only`;
       artifactPath = `/artifacts/${taskInstanceId}-ddos-report.txt`;
       break;
 
+    case 'ddos-mitigate':
+      output = `Applying DDoS mitigation for ${target}
+Timestamp: ${new Date().toLocaleString()}
+
+=== DDoS Mitigation Rules (Simulated) ===
+
+1. Rate limiting for HTTP traffic:
+   iptables -A INPUT -p tcp --dport 80 -m limit --limit 25/minute --limit-burst 100 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 80 -j DROP
+
+2. Connection tracking rules:
+   iptables -A INPUT -p tcp -m state --state NEW -m limit --limit 50/second --limit-burst 50 -j ACCEPT
+
+3. SYN flood protection:
+   iptables -A INPUT -p tcp --syn -m limit --limit 1/second -j ACCEPT
+
+4. Drop invalid packets:
+   iptables -A INPUT -m state --state INVALID -j DROP
+
+Status: Rules configured successfully (simulation mode)
+Note: In production, these rules would be applied with root privileges`;
+      artifactPath = `/artifacts/${taskInstanceId}-ddos-mitigation.txt`;
+      break;
+
     case 'add-firewall':
-      output = `Adding firewall rules to ${target}
-Rule 1: ACCEPT INPUT from 192.168.56.0/24
-Rule 2: DROP INPUT from all other sources to port 22
-Rule 3: ALLOW established,related connections
-Rule 4: DEFAULT deny policy
-Status: Rules applied successfully`;
+      output = `Configuring firewall rules for ${target}
+Timestamp: ${new Date().toLocaleString()}
+
+=== Basic Firewall Configuration (Simulated) ===
+
+1. Allow established/related connections
+2. Allow SSH access (port 22)
+3. Allow HTTP/HTTPS (ports 80, 443)
+4. Rate limit ICMP (ping)
+5. Drop invalid packets
+6. Log and drop all other traffic
+
+Status: Firewall rules configured successfully (simulation mode)
+Note: In production, these rules would be applied with root privileges`;
+      artifactPath = `/artifacts/${taskInstanceId}-firewall.txt`;
       break;
     
     default:

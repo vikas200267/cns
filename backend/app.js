@@ -184,9 +184,11 @@ function getRateLimiter(taskId) {
 
 // Input validation
 function validateTarget(target) {
-  // Basic IP format validation
+  // Accept localhost or valid IP format
   const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  if (!ipRegex.test(target)) {
+  const isValidFormat = target === 'localhost' || ipRegex.test(target);
+  
+  if (!isValidFormat) {
     return { valid: false, error: 'Invalid IP format' };
   }
 
@@ -245,8 +247,14 @@ async function executeTask(taskId, target, taskInstanceId, auth) {
       // Ensure artifacts directory exists
       await fs.mkdir(ARTIFACTS_PATH, { recursive: true });
 
-      // Execute the script directly
-      const command = `bash ${scriptPath} ${target}`;
+      // Build command with special handling for localhost
+      let command = `bash ${scriptPath} ${target}`;
+      
+      // For nikto-scan on localhost/127.0.0.1, automatically use port 3003 (Juice Shop)
+      if (taskId === 'nikto-scan' && (target === 'localhost' || target === '127.0.0.1')) {
+        command = `bash ${scriptPath} ${target} 3003`;
+      }
+      
       logger.info('Executing command', { command });
 
       let output = '';
@@ -321,9 +329,17 @@ async function executeTask(taskId, target, taskInstanceId, auth) {
     }
 
     // Real Docker-backed execution
+    // Build command with special handling for localhost
+    let containerCmd = [task.script, target];
+    
+    // For nikto-scan on localhost/127.0.0.1, automatically use port 3003 (Juice Shop)
+    if (taskId === 'nikto-scan' && (target === 'localhost' || target === '127.0.0.1')) {
+      containerCmd = [task.script, target, '3003'];
+    }
+    
     const container = await docker.createContainer({
       Image: 'lab-runner:latest',
-      Cmd: [task.script, target],
+      Cmd: containerCmd,
       name: `lab-task-${taskInstanceId}`,
       HostConfig: {
         AutoRemove: true,
