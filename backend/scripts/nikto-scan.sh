@@ -15,12 +15,12 @@ echo ""
 # Ensure artifacts directory exists
 mkdir -p "$ARTIFACTS_PATH"
 
-# Run nikto with timeout and throttling
-timeout 120 /usr/bin/nikto.pl \
+# Run nikto with timeout and throttling (15 minutes = 900 seconds)
+timeout 900 /usr/bin/nikto.pl \
     -host "$TARGET" \
     -port "$PORT" \
-    -timeout 10 \
-    -maxtime 120 \
+    -timeout 30 \
+    -maxtime 900 \
     -output "$OUTPUT_FILE" 2>&1 || true
 
 EXIT_CODE=$?

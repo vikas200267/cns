@@ -209,7 +209,8 @@ const LabControlApp = () => {
           headers: {
             'x-api-key': apiKey,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 960000  // 16 minutes timeout (960 seconds) to allow nikto scan to complete
         }
       );
 
