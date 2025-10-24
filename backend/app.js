@@ -22,8 +22,12 @@ const Docker = require('dockerode');
 const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const { exec } = require('child_process');
+const { promisify } = require('util');
 const winston = require('winston');
 require('dotenv').config();
+
+const execAsync = promisify(exec);
 
 const app = express();
 const docker = new Docker();
@@ -228,10 +232,60 @@ async function executeTask(taskId, target, taskInstanceId, auth) {
 
   try {
     if (!dockerAvailable) {
-      // Simulate task execution in environments without Docker (development / Codespaces)
+      // Direct execution without Docker (for Codespaces/development)
+      logger.info('Executing task directly (non-Docker mode)', {
+        taskInstanceId,
+        script: task.script,
+        target
+      });
+
+      // Build script path
+      const scriptPath = path.join(__dirname, 'scripts', task.script);
+      
+      // Ensure artifacts directory exists
+      await fs.mkdir(ARTIFACTS_PATH, { recursive: true });
+
+      // Execute the script directly
+      const command = `bash ${scriptPath} ${target}`;
+      logger.info('Executing command', { command });
+
+      let output = '';
+      let exitCode = 0;
+      let artifactPath = null;
+
+      try {
+        const { stdout, stderr } = await execAsync(command, {
+          timeout: 300000, // 5 minutes timeout
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env: {
+            ...process.env,
+            ARTIFACTS_PATH,
+            TIMESTAMP: new Date().toISOString().replace(/[:.]/g, '-')
+          }
+        });
+
+        output = stdout + (stderr ? `\nSTDERR:\n${stderr}` : '');
+
+        // Try to extract artifact path from output
+        const artifactMatch = output.match(/ARTIFACT:\s*(.+)/);
+        if (artifactMatch) {
+          artifactPath = artifactMatch[1].trim();
+        }
+
+      } catch (error) {
+        exitCode = error.code || 1;
+        output = error.stdout || '';
+        output += error.stderr ? `\nSTDERR:\n${error.stderr}` : '';
+        output += `\nError: ${error.message}`;
+        
+        logger.error('Script execution failed', {
+          taskInstanceId,
+          error: error.message,
+          exitCode
+        });
+      }
+
       const duration = (Date.now() - startTime) / 1000;
-      const output = `SIMULATED_EXECUTION: ${task.script} ${target}\nARTIFACT: ${ARTIFACTS_PATH}/simulated-${taskInstanceId}.txt\nSimulated output for task ${taskId}`;
-      const artifactPath = `${ARTIFACTS_PATH}/simulated-${taskInstanceId}.txt`;
 
       const auditEntry = {
         timestamp: new Date().toISOString(),
@@ -241,20 +295,12 @@ async function executeTask(taskId, target, taskInstanceId, auth) {
         target,
         startedAt: new Date(startTime).toISOString(),
         finishedAt: new Date().toISOString(),
-        exitCode: 0,
+        exitCode,
         duration,
         artifactPath,
-        success: true,
-        simulated: true
+        success: exitCode === 0,
+        direct: true  // Flag to indicate direct execution
       };
-
-      // Ensure artifacts path exists for simulation
-      try {
-        await fs.mkdir(ARTIFACTS_PATH, { recursive: true });
-        await fs.writeFile(artifactPath, `Simulated artifact for ${taskInstanceId}\n`);
-      } catch (err) {
-        logger.warn('Failed to write simulated artifact', { error: err.message });
-      }
 
       // Append to audit log
       try {
@@ -263,11 +309,11 @@ async function executeTask(taskId, target, taskInstanceId, auth) {
         logger.warn('Failed to append to audit log', { error: err.message });
       }
 
-      logger.info('Simulated task completed', auditEntry);
+      logger.info('Task execution completed', auditEntry);
 
       return {
-        success: true,
-        exitCode: 0,
+        success: exitCode === 0,
+        exitCode,
         output,
         artifactPath,
         duration

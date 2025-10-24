@@ -1,0 +1,39 @@
+{"level":"info","message":"Configuration loaded","targetCount":27,"taskCount":8,"timestamp":"2025-10-24T05:14:38.737Z"}
+{"error":"connect ENOENT /var/run/docker.sock","level":"warn","message":"Docker daemon not reachable - tasks will run in simulated mode","timestamp":"2025-10-24T05:14:38.760Z"}
+{"level":"info","message":"Lab Control API listening on port 3001","timestamp":"2025-10-24T05:14:38.766Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:14:46.052Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:14:51.342Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:15:01.807Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:15:11.164Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:15:20.820Z"}
+{"error":"Invalid IP format","keyId":"operator-key-1","level":"warn","message":"Invalid target","target":"testphp.vulnweb.com","timestamp":"2025-10-24T05:15:24.488Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:15:31.289Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:15:42.204Z"}
+{"keyId":"operator-key-1","level":"info","message":"Starting task execution","script":"nmap-scan.sh","target":"8.8.8.8","taskId":"nmap-scan","taskInstanceId":"task_c5a3a8ea","timestamp":"2025-10-24T05:15:43.953Z"}
+{"level":"info","message":"Executing task directly (non-Docker mode)","script":"nmap-scan.sh","target":"8.8.8.8","taskInstanceId":"task_c5a3a8ea","timestamp":"2025-10-24T05:15:43.954Z"}
+{"command":"bash /workspaces/cns/backend/scripts/nmap-scan.sh 8.8.8.8","level":"info","message":"Executing command","timestamp":"2025-10-24T05:15:43.954Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:15:50.834Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:01.301Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:10.883Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:20.740Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:30.787Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:40.780Z"}
+{"apiKeyId":"operator-key-1","artifactPath":"/workspaces/cns/artifacts/nmap-8.8.8.8-20251024-051543.txt","direct":true,"duration":65.882,"exitCode":0,"finishedAt":"2025-10-24T05:16:49.835Z","level":"info","message":"Task execution completed","startedAt":"2025-10-24T05:15:43.953Z","success":true,"target":"8.8.8.8","taskId":"nmap-scan","taskInstanceId":"task_c5a3a8ea","timestamp":"2025-10-24T05:16:49.835Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:50.176Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:16:50.809Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:17:00.930Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:17:10.862Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:17:20.820Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:17:30.862Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:17:40.894Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:17:50.801Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:18:00.733Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:18:11.152Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:18:21.283Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:18:31.097Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:18:41.094Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:18:51.082Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:19:01.151Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:19:30.107Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:20:30.217Z"}
+{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-10-24T05:21:30.221Z"}

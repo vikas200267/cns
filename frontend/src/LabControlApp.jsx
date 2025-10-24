@@ -22,19 +22,46 @@ import {
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-// Dynamic API URL for Codespaces support
+// API URL Configuration
+// Use relative URLs to leverage the proxy in package.json
 const getApiUrl = () => {
+  // In development with proxy, use relative URLs (empty string means same origin)
+  // This allows the webpack dev server proxy to forward requests to the backend
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Development mode - using proxy (relative URLs)');
+    return '';  // Relative URLs will be proxied to localhost:3001
+  }
+  
+  // Check if running in Simple Browser or localhost
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname === '0.0.0.0';
+  
+  if (isLocalhost) {
+    console.log('Local access detected - using http://localhost:3001');
+    return 'http://localhost:3001';
+  }
+  
+  // Check for explicit environment variable
   if (process.env.REACT_APP_BACKEND_URL) {
+    console.log('Using env backend URL:', process.env.REACT_APP_BACKEND_URL);
     return process.env.REACT_APP_BACKEND_URL;
   }
-  // In Codespaces, replace port 3000 with 3001 in the current URL
+  
+  // In Codespaces public URL, replace port 3000 with 3001
   if (window.location.hostname.includes('github.dev') || window.location.hostname.includes('app.github.dev')) {
-    return window.location.origin.replace('-3000.', '-3001.');
+    const backendUrl = window.location.origin.replace('-3000.', '-3001.');
+    console.log('Codespaces public URL detected - using:', backendUrl);
+    return backendUrl;
   }
+  
+  // Fallback to localhost
+  console.log('Fallback to localhost backend');
   return 'http://localhost:3001';
 };
 
 const API_URL = getApiUrl();
+console.log('✓ Frontend configured to connect to API at:', API_URL || 'same-origin (via proxy)');
 
 const LabControlApp = () => {
   const [apiKey, setApiKey] = useState('');
@@ -153,6 +180,12 @@ const LabControlApp = () => {
       theme: 'dark',
     });
 
+    console.log('=== Task Execution Debug ===');
+    console.log('API URL:', API_URL);
+    console.log('Task ID:', taskId);
+    console.log('Target:', target);
+    console.log('API Key:', apiKey ? '***' + apiKey.slice(-4) : 'NOT SET');
+
     try {
       const response = await axios.post(
         `${API_URL}/api/tasks`,
@@ -202,16 +235,32 @@ const LabControlApp = () => {
       });
 
     } catch (error) {
+      console.error('=== Task Execution Error ===');
+      console.error('Error object:', error);
+      console.error('Error message:', error.message);
+      console.error('Has response:', !!error.response);
+      console.error('Error config:', error.config);
+      
       let errorMsg = 'Task execution failed\n\n';
       
       if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
         errorMsg += `Status: ${error.response.status}\n`;
         errorMsg += `Error: ${error.response.data.error || 'Unknown error'}\n`;
         
         if (error.response.data.details) {
           errorMsg += `Details: ${error.response.data.details}\n`;
         }
+      } else if (error.request) {
+        console.error('Request made but no response:', error.request);
+        errorMsg += `Error: ${error.message}\n`;
+        errorMsg += `\nNo response from backend. Check:\n`;
+        errorMsg += `1. Backend is running: ${API_URL}/health\n`;
+        errorMsg += `2. Network connectivity\n`;
+        errorMsg += `3. Browser console for CORS errors\n`;
       } else {
+        console.error('Error setting up request:', error.message);
         errorMsg += `Error: ${error.message}\n`;
       }
       

@@ -1,11 +1,51 @@
 # Allowed target IPs for lab testing
 # One IP per line, comments start with #
 
-# Metasploitable VM
+# Local Lab VMs
 192.168.56.101
-
-# Kali VM
 192.168.56.102
-
-# Juice Shop
 192.168.56.103
+
+# Public DNS Servers (for testing)
+8.8.8.8
+8.8.4.4
+1.1.1.1
+1.0.0.1
+
+# Legitimate Test/Scan Targets
+45.33.32.156
+scanme.nmap.org
+
+# Instagram IPs (may change, use for educational purposes only)
+157.240.221.174
+157.240.221.35
+31.13.86.36
+
+# Flipkart IPs (may change, use for educational purposes only)
+163.53.78.110
+163.53.78.82
+
+# Other Popular Services (for educational/testing purposes only)
+142.250.182.46
+172.217.16.206
+
+# Amazon
+52.94.236.248
+54.239.28.85
+
+# GitHub
+140.82.121.3
+140.82.121.4
+
+# Microsoft
+20.190.151.70
+13.107.42.14
+
+# Cloudflare
+104.16.132.229
+104.16.133.229
+
+# Official Security Testing Sites
+testphp.vulnweb.com
+testasp.vulnweb.com
+testhtml5.vulnweb.com

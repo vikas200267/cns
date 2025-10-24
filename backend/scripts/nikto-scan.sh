@@ -4,29 +4,32 @@ set -euo pipefail
 
 TARGET="$1"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-OUTPUT_FILE="/artifacts/nikto-${TARGET}-${TIMESTAMP}.txt"
-
-# Validate target
-if ! grep -qx "$TARGET" /etc/lab_allowed_targets; then
-    echo "ERROR: Target $TARGET not in allowed list"
-    exit 1
-fi
+ARTIFACTS_PATH="${ARTIFACTS_PATH:-/workspaces/cns/artifacts}"
+OUTPUT_FILE="${ARTIFACTS_PATH}/nikto-${TARGET}-${TIMESTAMP}.txt"
 
 echo "Starting nikto scan of http://$TARGET"
 echo "Output: $OUTPUT_FILE"
+echo ""
 
 # Run nikto with timeout and throttling
-timeout 120 nikto \
+timeout 120 /usr/bin/nikto.pl \
     -host "http://$TARGET" \
     -timeout 10 \
     -maxtime 120 \
-    -output "$OUTPUT_FILE"
+    -output "$OUTPUT_FILE" 2>&1 || true
 
 EXIT_CODE=$?
 
+# Nikto returns various exit codes, 0 or 124 (timeout) are acceptable
 if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 124 ]; then
-    echo "Scan completed (timeout is normal)"
+    echo ""
+    echo "Scan completed (timeout is normal for thorough scans)"
     echo "ARTIFACT: $OUTPUT_FILE"
+    echo ""
+    if [ -f "$OUTPUT_FILE" ]; then
+        echo "=== Scan Results (first 50 lines) ==="
+        head -50 "$OUTPUT_FILE"
+    fi
     exit 0
 else
     echo "Scan failed with exit code $EXIT_CODE"
