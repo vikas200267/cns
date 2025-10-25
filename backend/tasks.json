@@ -20,28 +20,32 @@
     "requiredRole": "operator",
     "sensitive": false
   },
+  "stop-capture": {
+    "enabled": true,
+    "script": "stop-capture.sh",
+    "description": "Stop packet capture",
+    "requiredRole": "operator",
+    "sensitive": false
+  },
   "ddos-attack": {
     "enabled": true,
     "script": "ddos-attack.sh",
     "description": "Simulate DDoS attack (lab only)",
-    "requiredRole": "admin",
-    "sensitive": true,
-    "warning": "This will simulate a DDoS attack. Use only in isolated lab environment."
+    "requiredRole": "operator",
+    "sensitive": false
   },
   "ddos-mitigate": {
     "enabled": true,
     "script": "ddos-mitigate.sh",
     "description": "Apply DDoS mitigation",
-    "requiredRole": "admin",
-    "sensitive": true,
-    "warning": "This will add iptables rules for DDoS mitigation."
+    "requiredRole": "operator",
+    "sensitive": false
   },
   "add-firewall": {
     "enabled": true,
     "script": "add-firewall.sh",
     "description": "Configure basic firewall rules",
-    "requiredRole": "admin",
-    "sensitive": true,
-    "warning": "This will modify system firewall rules."
+    "requiredRole": "operator",
+    "sensitive": false
   }
 }
