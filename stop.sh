@@ -30,6 +30,9 @@ kill_port 3001
 echo "Stopping Frontend (port 3000)..."
 kill_port 3000
 
+echo "Stopping Juice Shop (port 3003)..."
+kill_port 3003
+
 # Also try to kill by PID files if they exist
 if [ -f "/tmp/cns_backend.pid" ]; then
     BACKEND_PID=$(cat /tmp/cns_backend.pid)
@@ -52,5 +55,6 @@ fi
 # Kill any remaining node processes related to the project
 pkill -f "node.*app.js" 2>/dev/null
 pkill -f "react-scripts start" 2>/dev/null
+pkill -f "juice-shop.*npm start" 2>/dev/null
 
-echo -e "${GREEN}All services stopped.${NC}"
+echo -e "${GREEN}All services stopped (Backend, Frontend, Juice Shop).${NC}"

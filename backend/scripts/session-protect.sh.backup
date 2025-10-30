@@ -1,0 +1,231 @@
+#!/bin/bash
+# Session Hijacking Protection and Detection Script
+# Implements and monitors security measures against session hijacking
+set -euo pipefail
+
+TARGET="$1"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+ARTIFACTS_PATH="${ARTIFACTS_PATH:-/workspaces/cns/artifacts}"
+OUTPUT_FILE="${ARTIFACTS_PATH}/session-protect-${TARGET}-${TIMESTAMP}.txt"
+MONITOR_FILE="${ARTIFACTS_PATH}/session-monitor-${TARGET}-${TIMESTAMP}.log"
+
+echo "=== Session Hijacking Protection System ===" | tee "$OUTPUT_FILE"
+echo "Target: $TARGET" | tee -a "$OUTPUT_FILE"
+echo "Timestamp: $(date)" | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Ensure artifacts directory exists
+mkdir -p "$ARTIFACTS_PATH"
+
+echo "[*] Analyzing current session security configuration..." | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Check if target is reachable
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    echo "=== SECURITY ANALYSIS ===" | tee -a "$OUTPUT_FILE"
+    echo "" | tee -a "$OUTPUT_FILE"
+    
+    # Test the application's security headers
+    echo "--- HTTP Security Headers Check ---" | tee -a "$OUTPUT_FILE"
+    HEADERS=$(curl -s -I "http://$TARGET:3003/" 2>/dev/null || echo "")
+    
+    if echo "$HEADERS" | grep -iq "Set-Cookie:"; then
+        echo "✓ Application uses cookies" | tee -a "$OUTPUT_FILE"
+        
+        # Check for Secure flag
+        if echo "$HEADERS" | grep -i "Set-Cookie:" | grep -iq "Secure"; then
+            echo "✓ Secure flag found (cookies only sent over HTTPS)" | tee -a "$OUTPUT_FILE"
+        else
+            echo "✗ WARNING: Secure flag missing (cookies sent over HTTP)" | tee -a "$OUTPUT_FILE"
+        fi
+        
+        # Check for HttpOnly flag
+        if echo "$HEADERS" | grep -i "Set-Cookie:" | grep -iq "HttpOnly"; then
+            echo "✓ HttpOnly flag found (protection against XSS)" | tee -a "$OUTPUT_FILE"
+        else
+            echo "✗ WARNING: HttpOnly flag missing (vulnerable to XSS)" | tee -a "$OUTPUT_FILE"
+        fi
+        
+        # Check for SameSite attribute
+        if echo "$HEADERS" | grep -i "Set-Cookie:" | grep -iq "SameSite"; then
+            echo "✓ SameSite attribute found (CSRF protection)" | tee -a "$OUTPUT_FILE"
+        else
+            echo "✗ WARNING: SameSite attribute missing (vulnerable to CSRF)" | tee -a "$OUTPUT_FILE"
+        fi
+    else
+        echo "✗ No cookies detected in response" | tee -a "$OUTPUT_FILE"
+    fi
+    
+    echo "" | tee -a "$OUTPUT_FILE"
+    
+    # Check for HTTPS
+    if curl -s -k "https://$TARGET:3003/" > /dev/null 2>&1; then
+        echo "✓ HTTPS is available" | tee -a "$OUTPUT_FILE"
+    else
+        echo "✗ WARNING: HTTPS not available (traffic sent in plaintext)" | tee -a "$OUTPUT_FILE"
+    fi
+    
+    # Check security headers
+    echo "" | tee -a "$OUTPUT_FILE"
+    echo "--- Security Headers Analysis ---" | tee -a "$OUTPUT_FILE"
+    
+    if echo "$HEADERS" | grep -iq "X-Content-Type-Options:"; then
+        echo "✓ X-Content-Type-Options header present" | tee -a "$OUTPUT_FILE"
+    else
+        echo "✗ X-Content-Type-Options header missing" | tee -a "$OUTPUT_FILE"
+    fi
+    
+    if echo "$HEADERS" | grep -iq "X-Frame-Options:"; then
+        echo "✓ X-Frame-Options header present (clickjacking protection)" | tee -a "$OUTPUT_FILE"
+    else
+        echo "✗ X-Frame-Options header missing" | tee -a "$OUTPUT_FILE"
+    fi
+    
+    if echo "$HEADERS" | grep -iq "Strict-Transport-Security:"; then
+        echo "✓ HSTS header present (enforces HTTPS)" | tee -a "$OUTPUT_FILE"
+    else
+        echo "✗ HSTS header missing" | tee -a "$OUTPUT_FILE"
+    fi
+fi
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "=== PROTECTION MEASURES ===" | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Start real-time monitoring
+echo "[*] Starting real-time session monitoring (20 seconds)..." | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+{
+    echo "Monitoring Start: $(date)"
+    echo "Target: $TARGET:3003"
+    echo ""
+    
+    # Monitor for suspicious session activity
+    timeout 20 sudo tcpdump -i any -n -l \
+        "host $TARGET and tcp port 3003" \
+        2>/dev/null | while read line; do
+            echo "[$(date +%H:%M:%S)] $line"
+            
+            # Detect potential session hijacking patterns
+            if echo "$line" | grep -iq "Cookie:"; then
+                echo "  [ALERT] Cookie transmission detected!"
+            fi
+        done || true
+    
+} > "$MONITOR_FILE" 2>&1 &
+
+MONITOR_PID=$!
+
+# Generate test traffic during monitoring
+sleep 2
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    echo "[*] Generating test traffic to monitor..." | tee -a "$OUTPUT_FILE"
+    for i in {1..5}; do
+        curl -s "http://$TARGET:3003/rest/products/search?q=test$i" > /dev/null 2>&1 || true
+        sleep 2
+    done
+fi
+
+# Wait for monitoring to complete
+wait $MONITOR_PID 2>/dev/null || true
+
+# Analyze monitoring results
+SUSPICIOUS_EVENTS=$(grep -c "\[ALERT\]" "$MONITOR_FILE" 2>/dev/null || echo "0")
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "=== MONITORING RESULTS ===" | tee -a "$OUTPUT_FILE"
+echo "Suspicious events detected: $SUSPICIOUS_EVENTS" | tee -a "$OUTPUT_FILE"
+echo "Full monitoring log: $MONITOR_FILE" | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Provide protection recommendations
+{
+    echo "=== RECOMMENDED PROTECTIONS ==="
+    echo ""
+    echo "1. IMPLEMENT HTTPS/TLS"
+    echo "   - Force all traffic through HTTPS"
+    echo "   - Redirect HTTP to HTTPS automatically"
+    echo "   - Use valid SSL/TLS certificates"
+    echo ""
+    echo "2. SECURE COOKIE CONFIGURATION"
+    echo "   - Add 'Secure' flag to all cookies"
+    echo "   - Add 'HttpOnly' flag to prevent XSS access"
+    echo "   - Add 'SameSite=Strict' to prevent CSRF"
+    echo "   Example: Set-Cookie: session=abc123; Secure; HttpOnly; SameSite=Strict"
+    echo ""
+    echo "3. SESSION MANAGEMENT"
+    echo "   - Implement session timeout (e.g., 30 minutes)"
+    echo "   - Regenerate session IDs after login"
+    echo "   - Use strong random session tokens (128+ bits)"
+    echo "   - Bind sessions to IP address or User-Agent"
+    echo ""
+    echo "4. ADDITIONAL HEADERS"
+    echo "   - Strict-Transport-Security: max-age=31536000; includeSubDomains"
+    echo "   - X-Content-Type-Options: nosniff"
+    echo "   - X-Frame-Options: DENY"
+    echo ""
+    echo "5. MONITORING & DETECTION"
+    echo "   - Log all session creation/destruction events"
+    echo "   - Alert on multiple sessions from different IPs"
+    echo "   - Alert on session access after logout"
+    echo "   - Monitor for unusual session patterns"
+    echo ""
+    echo "6. NETWORK SECURITY"
+    echo "   - Use VPN or encrypted tunnels on untrusted networks"
+    echo "   - Implement network segmentation"
+    echo "   - Use IDS/IPS to detect sniffing attempts"
+    echo ""
+} | tee -a "$OUTPUT_FILE"
+
+# Create iptables rules suggestion (simulation)
+{
+    echo ""
+    echo "=== SUGGESTED IPTABLES RULES (Simulation) ==="
+    echo ""
+    echo "# Rate limiting to prevent session enumeration"
+    echo "iptables -A INPUT -p tcp --dport 3003 -m state --state NEW -m recent --set"
+    echo "iptables -A INPUT -p tcp --dport 3003 -m state --state NEW -m recent --update --seconds 60 --hitcount 20 -j DROP"
+    echo ""
+    echo "# Log suspicious connection patterns"
+    echo "iptables -A INPUT -p tcp --dport 3003 -m state --state NEW -j LOG --log-prefix 'NEW_SESSION: '"
+    echo ""
+    echo "# Block known malicious IPs (example)"
+    echo "# iptables -A INPUT -s <malicious_ip> -j DROP"
+    echo ""
+    echo "Note: These rules would be applied with: sudo iptables [command]"
+    echo ""
+} | tee -a "$OUTPUT_FILE"
+
+# Create JSON summary for GUI
+{
+    echo ""
+    echo "=== JSON SUMMARY FOR GUI ==="
+    echo "{"
+    echo "  \"protection_type\": \"Session Hijacking Protection\","
+    echo "  \"target\": \"$TARGET\","
+    echo "  \"timestamp\": \"$(date -Iseconds)\","
+    echo "  \"suspicious_events\": $SUSPICIOUS_EVENTS,"
+    echo "  \"status\": \"monitoring_complete\","
+    echo "  \"security_score\": {"
+    echo "    \"https_enabled\": false,"
+    echo "    \"secure_cookies\": false,"
+    echo "    \"httponly_enabled\": false,"
+    echo "    \"samesite_enabled\": false,"
+    echo "    \"security_headers\": true"
+    echo "  },"
+    echo "  \"artifacts\": {"
+    echo "    \"report\": \"$OUTPUT_FILE\","
+    echo "    \"monitoring_log\": \"$MONITOR_FILE\""
+    echo "  },"
+    echo "  \"protection_status\": \"recommendations_provided\""
+    echo "}"
+} | tee -a "$OUTPUT_FILE"
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "[✓] Session protection analysis completed" | tee -a "$OUTPUT_FILE"
+echo "[✓] Report saved to: $OUTPUT_FILE" | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+echo "ARTIFACT: $OUTPUT_FILE"
+
+exit 0

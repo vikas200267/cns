@@ -18,9 +18,8 @@ echo ""
 mkdir -p "$ARTIFACTS_PATH"
 
 # Run nmap with safe options
-# Using --version-intensity 0 for faster scanning without NSE scripts
-nmap -sV \
-     --version-intensity 0 \
+# Using -sT (TCP connect scan) without version detection to avoid NSE errors
+nmap -sT \
      --top-ports 100 \
      --max-retries 1 \
      --host-timeout 5m \

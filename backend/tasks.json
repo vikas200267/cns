@@ -27,17 +27,26 @@
     "requiredRole": "operator",
     "sensitive": false
   },
-  "ddos-attack": {
+  "session-hijack": {
     "enabled": true,
-    "script": "ddos-attack.sh",
-    "description": "Simulate DDoS attack (lab only)",
+    "script": "session-hijack.sh",
+    "description": "Session hijacking attack (captures and displays session cookies)",
     "requiredRole": "operator",
-    "sensitive": false
+    "sensitive": true,
+    "warning": "This will capture active session cookies from HTTP traffic"
   },
-  "ddos-mitigate": {
+  "session-hijack-msf": {
     "enabled": true,
-    "script": "ddos-mitigate.sh",
-    "description": "Apply DDoS mitigation",
+    "script": "session-hijack-msf.sh",
+    "description": "Metasploit-style session hijacking with exploit payloads",
+    "requiredRole": "operator",
+    "sensitive": true,
+    "warning": "Advanced Metasploit Framework exploitation - captures cookies, credentials, and generates exploit payloads"
+  },
+  "session-protect": {
+    "enabled": true,
+    "script": "session-protect.sh",
+    "description": "Apply session hijacking protection and detection",
     "requiredRole": "operator",
     "sensitive": false
   },

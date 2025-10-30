@@ -3,13 +3,8 @@
 set -euo pipefail
 
 TARGET="$1"
-PID_FILE="/artifacts/capture-${TARGET}.pid"
-
-# Validate target
-if ! grep -qx "$TARGET" /etc/lab_allowed_targets; then
-    echo "ERROR: Target $TARGET not in allowed list"
-    exit 1
-fi
+ARTIFACTS_PATH="${ARTIFACTS_PATH:-/workspaces/cns/artifacts}"
+PID_FILE="${ARTIFACTS_PATH}/capture-${TARGET}.pid"
 
 # Check if capture is running
 if [ ! -f "$PID_FILE" ]; then

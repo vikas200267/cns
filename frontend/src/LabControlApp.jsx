@@ -108,17 +108,25 @@ const LabControlApp = () => {
         sensitive: false
       },
       {
-        id: 'ddos-attack',
-        name: 'DDoS Attack',
-        description: 'Simulate DDoS attack',
-        icon: '⚡',
+        id: 'session-hijack',
+        name: 'Session Hijack',
+        description: 'Capture session cookies (HTTP)',
+        icon: '🎯',
         role: 'operator',
-        sensitive: false
+        sensitive: true
       },
       {
-        id: 'ddos-mitigate',
-        name: 'DDoS Mitigation',
-        description: 'Apply DDoS mitigation',
+        id: 'session-hijack-msf',
+        name: 'MSF Session Hijack',
+        description: 'Metasploit-style exploitation',
+        icon: '💀',
+        role: 'operator',
+        sensitive: true
+      },
+      {
+        id: 'session-protect',
+        name: 'Session Protection',
+        description: 'Monitor & secure sessions',
         icon: '🛡️',
         role: 'operator',
         sensitive: false
