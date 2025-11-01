@@ -1,0 +1,9 @@
+# Nmap 7.97 scan initiated Sat Nov  1 12:52:54 2025 as: nmap -sT --top-ports 100 --max-retries 1 --host-timeout 5m -oX /workspaces/cns/artifacts/nmap-127.0.0.1-20251101-125254.xml -oN /workspaces/cns/artifacts/nmap-127.0.0.1-20251101-125254.txt 127.0.0.1
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00013s latency).
+Not shown: 98 closed tcp ports (conn-refused)
+PORT     STATE SERVICE
+2000/tcp open  cisco-sccp
+3000/tcp open  ppp
+
+# Nmap done at Sat Nov  1 12:52:54 2025 -- 1 IP address (1 host up) scanned in 0.03 seconds

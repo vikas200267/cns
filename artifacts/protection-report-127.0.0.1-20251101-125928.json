@@ -1,0 +1,77 @@
+{
+  "timestamp": "2025-11-01T12:59:28.769956",
+  "target": "127.0.0.1",
+  "security_score": 50,
+  "risk_level": "HIGH",
+  "findings": {
+    "https_enabled": false,
+    "secure_cookies": false,
+    "httponly_enabled": false,
+    "samesite_enabled": false,
+    "hsts_enabled": false,
+    "csrf_protection": false,
+    "xss_protection": false,
+    "frame_protection": true
+  },
+  "vulnerabilities": [
+    {
+      "type": "Missing HSTS Header",
+      "severity": "MEDIUM",
+      "cvss": 5.0,
+      "description": "No HTTP Strict Transport Security",
+      "remediation": "Add: Strict-Transport-Security: max-age=31536000"
+    },
+    {
+      "type": "Insufficient XSS Protection",
+      "severity": "MEDIUM",
+      "cvss": 6.1,
+      "description": "No browser XSS protection headers",
+      "remediation": "Add CSP and X-XSS-Protection headers"
+    },
+    {
+      "type": "HTTPS Not Enabled",
+      "severity": "CRITICAL",
+      "cvss": 9.1,
+      "description": "All traffic transmitted in cleartext",
+      "remediation": "Enable HTTPS with valid SSL/TLS certificate"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "action": "Enable HTTPS/TLS",
+      "steps": [
+        "Obtain SSL/TLS certificate (Let's Encrypt)",
+        "Configure web server for HTTPS on port 443",
+        "Redirect all HTTP traffic to HTTPS",
+        "Test certificate validity"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Add Secure flag to cookies",
+      "steps": [
+        "Update Set-Cookie headers",
+        "Add: Secure; flag",
+        "Test in browser developer tools"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Add HttpOnly flag to cookies",
+      "steps": [
+        "Update session cookie configuration",
+        "Add: HttpOnly; flag",
+        "Verify JavaScript cannot access cookies"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Implement SameSite cookie protection",
+      "steps": [
+        "Add: SameSite=Strict; or SameSite=Lax;",
+        "Test cross-site request behavior"
+      ]
+    }
+  ]
+}

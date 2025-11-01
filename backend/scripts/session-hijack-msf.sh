@@ -471,64 +471,138 @@ PYTHON_EOF
 chmod +x "$EXPLOIT_SCRIPT"
 
 echo "════════════════════════════════════════════════════════════════" | tee -a "$OUTPUT_FILE"
-echo "[MODULE 1] Packet Capture & Traffic Analysis" | tee -a "$OUTPUT_FILE"
+echo "[MODULE 1] Target Verification & Preparation" | tee -a "$OUTPUT_FILE"
 echo "════════════════════════════════════════════════════════════════" | tee -a "$OUTPUT_FILE"
-echo "[*] Starting Metasploit-style packet capture..." | tee -a "$OUTPUT_FILE"
-echo "[*] Duration: 50 seconds" | tee -a "$OUTPUT_FILE"
-echo "[*] Capturing on all interfaces..." | tee -a "$OUTPUT_FILE"
+
+# Check if Juice Shop is actually running FIRST
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    echo "[*] Verifying target is accessible..." | tee -a "$OUTPUT_FILE"
+    if ! curl -s --connect-timeout 5 "http://$TARGET:3003/" > /dev/null 2>&1; then
+        echo "[-] ERROR: Target http://$TARGET:3003 is NOT accessible!" | tee -a "$OUTPUT_FILE"
+        echo "[-] Please start Juice Shop first: ./start-juiceshop.sh" | tee -a "$OUTPUT_FILE"
+        echo "[-] Or check if it's running: curl http://localhost:3003" | tee -a "$OUTPUT_FILE"
+        echo "" | tee -a "$OUTPUT_FILE"
+        echo "[*] Attempting to show you how to fix this..." | tee -a "$OUTPUT_FILE"
+        echo "" | tee -a "$OUTPUT_FILE"
+        echo "ARTIFACT: $OUTPUT_FILE"
+        exit 1
+    else
+        echo "[+] Target is accessible!" | tee -a "$OUTPUT_FILE"
+        echo "[+] Juice Shop is running on http://$TARGET:3003" | tee -a "$OUTPUT_FILE"
+    fi
+fi
+
+echo "" | tee -a "$OUTPUT_FILE"
+echo "════════════════════════════════════════════════════════════════" | tee -a "$OUTPUT_FILE"
+echo "[MODULE 2] Packet Capture & Traffic Generation" | tee -a "$OUTPUT_FILE"
+echo "════════════════════════════════════════════════════════════════" | tee -a "$OUTPUT_FILE"
+echo "[*] Starting advanced packet capture..." | tee -a "$OUTPUT_FILE"
+echo "[*] Capture duration: 45 seconds" | tee -a "$OUTPUT_FILE"
+echo "[*] Filter: HTTP traffic to port 3003" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
 
-# Enhanced packet capture
-timeout 50 sudo tshark -i any -f "host $TARGET and tcp port 3003" \
-    -w "$PCAP_FILE" \
-    -F pcap \
-    2>/dev/null &
+# Start packet capture in background
+# Use 'lo' interface for localhost traffic instead of 'any'
+INTERFACE="any"
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    INTERFACE="lo"
+fi
+
+echo "[*] Initializing packet capture on interface: $INTERFACE..." | tee -a "$OUTPUT_FILE"
+# Use tcpdump instead of tshark (more reliable for background captures)
+timeout 45 sudo tcpdump -i "$INTERFACE" -w "$PCAP_FILE" "tcp port 3003" > /dev/null 2>&1 &
 
 TSHARK_PID=$!
-sleep 3
+sleep 3  # Give tcpdump time to start and initialize
 
-# Generate attack traffic
+# Verify tcpdump is running
+if ! ps -p $TSHARK_PID > /dev/null 2>&1; then
+    echo "[-] WARNING: Packet capture may have failed to start" | tee -a "$OUTPUT_FILE"
+else
+    echo "[+] Packet capture started successfully (PID: $TSHARK_PID)" | tee -a "$OUTPUT_FILE"
+fi
+
+# NOW generate traffic while capture is active
 if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
-    echo "[MODULE 2] Attack Traffic Generation" | tee -a "$OUTPUT_FILE"
-    echo "════════════════════════════════════════════════════════════════" | tee -a "$OUTPUT_FILE"
-    echo "[*] Generating HTTP traffic for exploitation..." | tee -a "$OUTPUT_FILE"
+    echo "[*] Generating realistic HTTP traffic while capturing..." | tee -a "$OUTPUT_FILE"
     echo "" | tee -a "$OUTPUT_FILE"
     
-    # Login attempts
-    echo "[*] Stage 1: Authentication attempt..." | tee -a "$OUTPUT_FILE"
-    for i in {1..3}; do
-        curl -s -c /tmp/msf_cookies_${TIMESTAMP}.txt \
+    # Stage 1: Initial browsing (establishes baseline)
+    echo "[*] Stage 1: Initial browsing..." | tee -a "$OUTPUT_FILE"
+    curl -s "http://$TARGET:3003/" > /dev/null 2>&1 || true
+    sleep 1
+    curl -s "http://$TARGET:3003/rest/products/search?q=" > /dev/null 2>&1 || true
+    sleep 1
+    
+    # Stage 2: Multiple authentication attempts (captures login flow)
+    echo "[*] Stage 2: Authentication attempts..." | tee -a "$OUTPUT_FILE"
+    for i in {1..5}; do
+        RESPONSE=$(curl -s -c /tmp/msf_cookies_${TIMESTAMP}.txt -w "%{http_code}" \
             "http://$TARGET:3003/rest/user/login" \
             -H "Content-Type: application/json" \
-            -d "{\"email\":\"test${i}@test.com\",\"password\":\"test123\"}" \
-            > /dev/null 2>&1 || true
-        sleep 2
-    done
-    
-    # Session activity
-    echo "[*] Stage 2: Session activity simulation..." | tee -a "$OUTPUT_FILE"
-    for i in {1..10}; do
-        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/rest/products/search?q=apple" > /dev/null 2>&1 || true
-        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/api/BasketItems" \
-            -H "Content-Type: application/json" \
-            -d '{"ProductId":'$i',"BasketId":"1","quantity":1}' > /dev/null 2>&1 || true
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            -d "{\"email\":\"user${i}@example.com\",\"password\":\"password${i}\"}" \
+            2>/dev/null || echo "000")
+        echo "    [*] Login attempt ${i}: HTTP ${RESPONSE##*$'\n'}" | tee -a "$OUTPUT_FILE"
         sleep 1
     done
     
-    # Admin attempts
-    echo "[*] Stage 3: Privilege escalation attempts..." | tee -a "$OUTPUT_FILE"
+    # Stage 3: Session activity with cookies
+    echo "[*] Stage 3: Authenticated session activity..." | tee -a "$OUTPUT_FILE"
+    for i in {1..8}; do
+        # Product searches
+        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+            "http://$TARGET:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
+        sleep 1
+        
+        # Basket operations
+        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+            "http://$TARGET:3003/api/BasketItems" \
+            -d "{\"ProductId\":${i},\"quantity\":1}" > /dev/null 2>&1 || true
+        sleep 1
+    done
+    
+    # Stage 4: API endpoint enumeration
+    echo "[*] Stage 4: API enumeration..." | tee -a "$OUTPUT_FILE"
+    curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+        "http://$TARGET:3003/api/Challenges" > /dev/null 2>&1 || true
+    sleep 1
+    curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+        "http://$TARGET:3003/rest/basket/1" > /dev/null 2>&1 || true
+    sleep 1
     curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
         "http://$TARGET:3003/rest/user/whoami" > /dev/null 2>&1 || true
-    curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
-        "http://$TARGET:3003/api/Users" > /dev/null 2>&1 || true
+    sleep 1
     
-    echo "[+] Traffic generation complete" | tee -a "$OUTPUT_FILE"
+    # Stage 5: Final burst of activity
+    echo "[*] Stage 5: Final activity burst..." | tee -a "$OUTPUT_FILE"
+    for i in {1..5}; do
+        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/rest/products/${i}" > /dev/null 2>&1 || true
+        sleep 1
+    done
+    
+    echo "[+] Traffic generation complete (40+ HTTP requests generated)" | tee -a "$OUTPUT_FILE"
 fi
 
-# Wait for capture
+# Wait for capture to complete
+echo "[*] Waiting for packet capture to complete..." | tee -a "$OUTPUT_FILE"
 wait $TSHARK_PID 2>/dev/null || true
+
+# Verify we captured packets
+if [ -f "$PCAP_FILE" ]; then
+    PACKET_COUNT=$(sudo tcpdump -r "$PCAP_FILE" 2>/dev/null | wc -l || echo "0")
+    echo "[+] Capture complete: ${PACKET_COUNT} packets captured" | tee -a "$OUTPUT_FILE"
+    
+    if [ "$PACKET_COUNT" -eq "0" ]; then
+        echo "[-] WARNING: No packets captured! Traffic may not have been HTTP" | tee -a "$OUTPUT_FILE"
+    fi
+else
+    echo "[-] ERROR: PCAP file was not created!" | tee -a "$OUTPUT_FILE"
+fi
 
 echo "" | tee -a "$OUTPUT_FILE"
 echo "[MODULE 3] Metasploit Exploitation Engine" | tee -a "$OUTPUT_FILE"

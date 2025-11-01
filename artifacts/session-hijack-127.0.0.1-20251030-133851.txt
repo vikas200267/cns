@@ -1,0 +1,86 @@
+╔══════════════════════════════════════════════════════════════╗
+║     ADVANCED SESSION HIJACKING ATTACK                        ║
+║     Real-Time Cookie Theft & Token Extraction                ║
+╚══════════════════════════════════════════════════════════════╝
+
+Target: 127.0.0.1:3003
+Timestamp: Thu Oct 30 13:38:51 UTC 2025
+Capture Duration: 45 seconds
+Attack Type: Man-in-the-Middle (Passive Sniffing)
+
+[PHASE 1] Starting Advanced Packet Capture
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[*] Capturing HTTP/HTTPS traffic on all interfaces...
+[*] Filter: host 127.0.0.1 and port 3003
+[*] Duration: 45 seconds
+
+[PHASE 2] Generating Traffic & Stealing Sessions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[*] Simulating user activity to capture active sessions...
+
+[*] Intercepting login attempt...
+[*] Capturing product browsing session...
+[*] Intercepting basket operations...
+[*] Capturing API token exchange...
+[+] Traffic generation complete
+
+[PHASE 3] Deep Packet Analysis & Session Extraction
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[*] Analyzing captured packets with Python/TShark...
+
+[*] Analyzing captured packets with TShark...
+
+[+] Analysis complete!
+[+] Cookies captured: 0
+[+] Tokens captured: 0
+[+] Vulnerabilities found: 0
+[+] Risk Level: MEDIUM
+
+[PHASE 4] Vulnerability Assessment
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+═══ ATTACK STATISTICS ═══
+  total_cookies: 0
+  total_tokens: 0
+  total_credentials: 0
+  total_vulnerabilities: 0
+  unique_cookies: 0
+  critical_vulns: 0
+  high_vulns: 0
+  medium_vulns: 0
+
+═══ CAPTURED COOKIES ═══
+
+═══ CAPTURED TOKENS ═══
+
+═══ CRITICAL VULNERABILITIES ═══
+
+═══ RISK ASSESSMENT ═══
+  overall_risk: MEDIUM
+  exploitability: Moderate
+  impact: Limited session access
+
+═══ EXPLOITATION PROOF ═══
+✓ 0
+0 session cookies captured and ready for replay
+✓ Cookies saved to: /workspaces/cns/artifacts/session-cookies-127.0.0.1-20251030-133851.txt
+
+Attack demonstration:
+  curl -b '/workspaces/cns/artifacts/session-cookies-127.0.0.1-20251030-133851.txt' http://127.0.0.1:3003/api/Challenges
+  ^ This would replay the hijacked session
+
+╔══════════════════════════════════════════════════════════════╗
+║                   ATTACK COMPLETED                           ║
+╚══════════════════════════════════════════════════════════════╝
+
+📊 ARTIFACTS GENERATED:
+   • Full Report:    /workspaces/cns/artifacts/session-hijack-127.0.0.1-20251030-133851.txt
+   • Packet Capture: /workspaces/cns/artifacts/session-hijack-127.0.0.1-20251030-133851.pcap
+   • JSON Analysis:  /workspaces/cns/artifacts/session-hijack-127.0.0.1-20251030-133851.json
+   • Cookies:        /workspaces/cns/artifacts/session-cookies-127.0.0.1-20251030-133851.txt
+   • Tokens:         /workspaces/cns/artifacts/session-tokens-127.0.0.1-20251030-133851.txt
+
+⚠️  WARNING: This demonstrates why HTTPS is mandatory!
+⚠️  Captured sessions can be replayed to impersonate users!
+⚠️  All credentials and cookies transmitted in CLEARTEXT!
+

@@ -1,0 +1,123 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                     CNS LAB - QUICK INSTALLATION                         ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+📦 THREE WAYS TO INSTALL:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣  AUTOMATIC (RECOMMENDED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   One command installs everything:
+
+   ./install-tools.sh
+
+   This installs:
+   ✅ System tools (nmap, nikto, tcpdump, tshark, jq, etc.)
+   ✅ Python packages (scapy, requests, beautifulsoup4, etc.)
+   ✅ Node.js dependencies (backend, frontend, Juice Shop)
+   ✅ OWASP Juice Shop
+
+   Time: ~10-15 minutes
+   Disk space: ~1 GB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣  MANUAL (STEP-BY-STEP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   A. System Tools:
+      sudo apk add nmap nikto tcpdump tshark jq python3 py3-pip
+
+   B. Python Packages:
+      pip3 install --user -r requirements-python.txt
+
+   C. Node.js Dependencies:
+      npm install                    # Root
+      cd backend && npm install      # Backend
+      cd ../frontend && npm install  # Frontend
+      cd ../juice-shop && npm install # Juice Shop
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣  MINIMAL (JUST ESSENTIALS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   Quick install for limited space:
+
+   sudo apk add nmap nikto tcpdump python3 py3-pip
+   pip3 install --user scapy requests beautifulsoup4
+   cd backend && npm install
+   cd ../frontend && npm install
+
+   Time: ~5 minutes
+   Disk space: ~400 MB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ VERIFY INSTALLATION:
+
+   # Check tools
+   nmap --version
+   nikto -Version
+   tcpdump --version
+   python3 --version
+   node --version
+
+   # Check Python packages
+   pip3 list | grep -E "scapy|requests|beautifulsoup4"
+
+   # Check Node.js projects
+   ls backend/node_modules frontend/node_modules
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 AFTER INSTALLATION:
+
+   1. Start Backend:
+      cd backend && npm start
+
+   2. Start Frontend:
+      cd frontend && npm start
+
+   3. Start Juice Shop:
+      ./start-juiceshop.sh
+
+   4. Make Ports Public (Codespaces):
+      - Ports tab → Right-click 3000, 3001, 3003 → Public
+
+   5. Access Lab:
+      http://localhost:3000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION:
+
+   • Full Installation Guide:  cat INSTALLATION.md
+   • Beginner's Guide:          cat BEGINNER_GUIDE.md
+   • Quick Start:               cat START.md
+   • Juice Shop Guide:          cat JUICESHOP_GUIDE.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🆘 TROUBLESHOOTING:
+
+   Issue: "Permission denied"
+   Fix:   pip3 install --user -r requirements-python.txt
+
+   Issue: "nikto: command not found"
+   Fix:   sudo ln -sf /usr/bin/nikto.pl /usr/bin/nikto
+
+   Issue: "No space left"
+   Fix:   Use minimal installation (option 3)
+
+   Full troubleshooting: See INSTALLATION.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔑 API KEYS (for testing):
+
+   Operator:  op_1234567890abcdef
+   Admin:     adm_fedcba0987654321
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Need help? Check INSTALLATION.md for detailed instructions!

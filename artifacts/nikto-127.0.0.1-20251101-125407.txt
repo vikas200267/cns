@@ -1,0 +1,15 @@
+- Nikto v2.1.6/2.1.5
++ Target Host: 127.0.0.1
++ Target Port: 3003
++ GET Server leaks inodes via ETags, header found with file /, fields: 0xW/1252f 0x19a3f6e295a 
++ GET The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ GET Uncommon header 'feature-policy' found, with contents: payment 'self'
++ GET Uncommon header 'x-recruiting' found, with contents: /#/jobs
++ GET The site uses SSL and the Strict-Transport-Security HTTP header is not defined.
++ GET Entry '/ftp/' in robots.txt returned a non-forbidden or redirect HTTP code (200)
++ GET "robots.txt" contains 1 entry which should be manually viewed.
++ GET The Content-Encoding header is set to "deflate" this may mean that the server is vulnerable to the BREACH attack.
++ OSVDB-3092: GET /css: This might be interesting...
++ OSVDB-3092: GET /ftp/: This might be interesting...
++ OSVDB-3092: GET /public/: This might be interesting...
++ POST /wp-content/plugins/nextgen-gallery/products/photocrati_nextgen/modules/nextgen_addgallery_page/static/jquery.filetree/connectors/jqueryFileTree.php: NextGEN Gallery LFI, see https://security.dxw.com/advisories/directory-traversal-in-nextgen-gallery-2-0-0/

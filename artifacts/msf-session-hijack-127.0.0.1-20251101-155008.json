@@ -1,0 +1,91 @@
+{
+  "msf_module_info": {
+    "name": "HTTP Session Hijacking Framework",
+    "module": "auxiliary/sniffer/http_session_hijack",
+    "rank": "Excellent",
+    "disclosed": "2025-10-30",
+    "author": "Automated Security Framework",
+    "platform": "Web Applications",
+    "arch": "HTTP/HTTPS"
+  },
+  "target_info": {
+    "host": "127.0.0.1",
+    "port": 3003,
+    "protocol": "HTTP",
+    "application": "OWASP Juice Shop"
+  },
+  "exploitation_results": {
+    "total_cookies_captured": 0,
+    "exploitable_cookies": 0,
+    "credentials_captured": 0,
+    "tokens_captured": 0,
+    "exploit_payloads_generated": 0,
+    "success_rate": "0.0%"
+  },
+  "captured_sessions": [],
+  "captured_credentials": [],
+  "captured_tokens": [],
+  "exploit_payloads": [],
+  "vulnerability_analysis": {
+    "cve": "CWE-319 (Cleartext Transmission of Sensitive Information)",
+    "cvss_score": 9.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+    "severity": "CRITICAL",
+    "exploitability": "Easy",
+    "impact": "Complete session compromise, credential theft, account takeover",
+    "affected_systems": "All HTTP-based web applications without TLS",
+    "prerequisites": "Network access to same segment as victim"
+  },
+  "msf_recommendations": [
+    {
+      "priority": 1,
+      "action": "IMMEDIATE: Enable HTTPS/TLS",
+      "msf_module": "auxiliary/scanner/ssl/ssl_version",
+      "description": "Encrypt all traffic to prevent passive sniffing"
+    },
+    {
+      "priority": 2,
+      "action": "Add Secure flag to all cookies",
+      "msf_module": "auxiliary/scanner/http/cookie_flags",
+      "description": "Prevents cookie transmission over HTTP"
+    },
+    {
+      "priority": 3,
+      "action": "Implement HttpOnly on session cookies",
+      "msf_module": null,
+      "description": "Protects against XSS-based cookie theft"
+    },
+    {
+      "priority": 4,
+      "action": "Deploy network segmentation",
+      "msf_module": "auxiliary/scanner/discovery/arp_sweep",
+      "description": "Isolate sensitive traffic from potential attackers"
+    },
+    {
+      "priority": 5,
+      "action": "Implement IDS/IPS",
+      "msf_module": null,
+      "description": "Detect and prevent session hijacking attempts"
+    }
+  ],
+  "proof_of_concept": {
+    "description": "Session hijacking demonstrated with captured cookies",
+    "exploitation_steps": [
+      "1. Attacker captures HTTP traffic using packet sniffer",
+      "2. Extract session cookies from captured packets",
+      "3. Replay cookies in malicious requests",
+      "4. Gain unauthorized access to victim session",
+      "5. Perform actions as authenticated user"
+    ],
+    "detection_difficulty": "Very Hard (appears as legitimate traffic)",
+    "cleanup_required": false
+  },
+  "metasploit_commands": [
+    "use auxiliary/sniffer/http_session_hijack",
+    "set RHOST 127.0.0.1",
+    "set RPORT 3003",
+    "run",
+    "sessions -l",
+    "sessions -i 1"
+  ]
+}

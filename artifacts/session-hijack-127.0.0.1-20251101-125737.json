@@ -1,0 +1,39 @@
+{
+  "attack_info": {
+    "type": "Session Hijacking",
+    "method": "Passive Network Sniffing",
+    "timestamp": "2025-11-01T12:57:54.801915",
+    "pcap_file": "/workspaces/cns/artifacts/session-hijack-127.0.0.1-20251101-125737.pcap"
+  },
+  "statistics": {
+    "total_cookies": 0,
+    "total_tokens": 0,
+    "total_credentials": 0,
+    "total_vulnerabilities": 0,
+    "unique_cookies": 0,
+    "critical_vulns": 0,
+    "high_vulns": 0,
+    "medium_vulns": 0
+  },
+  "cookies": [],
+  "tokens": [],
+  "credentials": [],
+  "vulnerabilities": [],
+  "risk_assessment": {
+    "overall_risk": "MEDIUM",
+    "exploitability": "Moderate",
+    "impact": "Limited session access"
+  },
+  "recommendations": [
+    "1. IMMEDIATELY migrate to HTTPS/TLS for all traffic",
+    "2. Set Secure flag on all cookies",
+    "3. Set HttpOnly flag to prevent XSS",
+    "4. Implement SameSite=Strict on cookies",
+    "5. Never transmit credentials over HTTP",
+    "6. Use strong session tokens (256+ bits entropy)",
+    "7. Implement session binding to IP/User-Agent",
+    "8. Add session timeout and regeneration",
+    "9. Monitor for suspicious session patterns",
+    "10. Deploy HSTS headers"
+  ]
+}
