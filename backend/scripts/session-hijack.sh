@@ -168,23 +168,60 @@ def analyze_pcap(pcap_file, output_json, cookies_file, tokens_file):
                             'detail': 'Session token exposed in URL - logged in history/logs'
                         })
         
-        # Extract credentials with more detailed analysis
-        cred_result = subprocess.run([
+        # Extract POST data (credentials and tokens)
+        post_result = subprocess.run([
             'tshark', '-r', pcap_file, '-Y', 'http.request.method == "POST"',
-            '-T', 'fields', '-e', 'http.file_data'
+            '-T', 'fields', '-e', 'http.file_data', '-e', 'http.request.uri'
         ], capture_output=True, text=True, timeout=30)
         
-        for line in cred_result.stdout.split('\n'):
+        for line in post_result.stdout.split('\n'):
+            if not line.strip():
+                continue
+            # Check for credentials in POST data
             if 'password' in line.lower() or 'passwd' in line.lower() or 'pwd' in line.lower():
                 credentials.append({
-                    'type': 'Potential Credentials',
+                    'type': 'HTTP POST Credentials',
                     'data': line[:100] + '...' if len(line) > 100 else line,
                     'timestamp': datetime.now().isoformat()
                 })
                 vulnerabilities.append({
                     'type': 'Credentials Over HTTP',
                     'severity': 'CRITICAL',
-                    'detail': 'Password transmitted without encryption'
+                    'detail': 'Password transmitted in cleartext over HTTP'
+                })
+        
+        # Extract response bodies (JWT tokens)
+        response_result = subprocess.run([
+            'tshark', '-r', pcap_file, '-Y', 'http.response',
+            '-T', 'fields', '-e', 'http.file_data'
+        ], capture_output=True, text=True, timeout=30)
+        
+        jwt_pattern = r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'
+        for line in response_result.stdout.split('\n'):
+            # Look for JWT tokens in responses
+            jwt_matches = re.findall(jwt_pattern, line)
+            for jwt_token in jwt_matches:
+                tokens.append({
+                    'type': 'JWT Session Token',
+                    'value': jwt_token[:50] + '...' if len(jwt_token) > 50 else jwt_token,
+                    'full_value': jwt_token,
+                    'location': 'HTTP Response Body',
+                    'timestamp': datetime.now().isoformat()
+                })
+                vulnerabilities.append({
+                    'type': 'JWT Token Over HTTP',
+                    'severity': 'CRITICAL',
+                    'detail': 'Session token transmitted without encryption - can be intercepted and reused'
+                })
+            
+            # Look for "token" or "authentication" in JSON responses
+            if 'token' in line.lower() or 'authentication' in line.lower():
+                tokens.append({
+                    'type': 'API Response Token',
+                    'value': line[:80] + '...' if len(line) > 80 else line,
+                    'full_value': line,
+                    'location': 'HTTP Response',
+                    'timestamp': datetime.now().isoformat()
                 })
         
     except subprocess.TimeoutExpired:
@@ -278,18 +315,35 @@ chmod +x "$ANALYSIS_SCRIPT"
 
 echo "[PHASE 1] Starting Advanced Packet Capture" | tee -a "$OUTPUT_FILE"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$OUTPUT_FILE"
-echo "[*] Capturing HTTP/HTTPS traffic on all interfaces..." | tee -a "$OUTPUT_FILE"
-echo "[*] Filter: host $TARGET and port 3003" | tee -a "$OUTPUT_FILE"
-echo "[*] Duration: 45 seconds" | tee -a "$OUTPUT_FILE"
+
+# Determine correct interface and filter
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    INTERFACE="lo"
+    CAPTURE_FILTER="tcp port 3003"
+    echo "[*] Capturing on loopback interface (lo)..." | tee -a "$OUTPUT_FILE"
+else
+    INTERFACE="any"
+    CAPTURE_FILTER="host $TARGET and tcp port 3003"
+    echo "[*] Capturing on all interfaces..." | tee -a "$OUTPUT_FILE"
+fi
+
+echo "[*] Filter: $CAPTURE_FILTER" | tee -a "$OUTPUT_FILE"
+echo "[*] Duration: 60 seconds (with active traffic generation)" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
 
-# Start advanced packet capture with tshark
-timeout 45 sudo tshark -i any -f "host $TARGET and tcp port 3003" \
-    -w "$PCAP_FILE" \
-    -F pcap \
-    2>/dev/null &
+# Start packet capture in background using tcpdump (more reliable than tshark)
+(
+    sudo tcpdump -i "$INTERFACE" -w "$PCAP_FILE" "$CAPTURE_FILTER" 2>/dev/null &
+    TCPDUMP_PID=$!
+    sleep 60
+    sudo kill -TERM $TCPDUMP_PID 2>/dev/null || true
+    wait $TCPDUMP_PID 2>/dev/null || true
+) &
 
-TSHARK_PID=$!
+CAPTURE_BG_PID=$!
+
+# Wait for tcpdump to initialize
+echo "[*] Initializing packet capture..." | tee -a "$OUTPUT_FILE"
 sleep 3
 
 # Generate realistic attack traffic
@@ -299,34 +353,65 @@ if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
     echo "[*] Simulating user activity to capture active sessions..." | tee -a "$OUTPUT_FILE"
     echo "" | tee -a "$OUTPUT_FILE"
     
-    # Login attempt
-    echo "[*] Intercepting login attempt..." | tee -a "$OUTPUT_FILE"
-    LOGIN_RESPONSE=$(curl -s -c /tmp/cookies_${TIMESTAMP}.txt \
+    # Register a test user first
+    echo "[*] Creating test user account..." | tee -a "$OUTPUT_FILE"
+    REGISTER_RESPONSE=$(curl -s -c /tmp/cookies_${TIMESTAMP}.txt \
+        "http://$TARGET:3003/api/Users/" \
+        -H "Content-Type: application/json" \
+        -d '{"email":"victim'${TIMESTAMP}'@hijack.test","password":"Victim123!","passwordRepeat":"Victim123!","securityQuestion":{"id":1},"securityAnswer":"blue"}' 2>/dev/null || echo "{}")
+    sleep 2
+    
+    # Login attempt - this generates JWT tokens
+    echo "[*] Intercepting login with credentials..." | tee -a "$OUTPUT_FILE"
+    LOGIN_RESPONSE=$(curl -s -c /tmp/cookies_${TIMESTAMP}.txt -b /tmp/cookies_${TIMESTAMP}.txt \
         "http://$TARGET:3003/rest/user/login" \
         -H "Content-Type: application/json" \
-        -d '{"email":"test@test.com","password":"test123"}' 2>/dev/null || echo "{}")
-    sleep 1
+        -d '{"email":"victim'${TIMESTAMP}'@hijack.test","password":"Victim123!"}' 2>/dev/null || echo "{}")
     
-    # Browse products
-    echo "[*] Capturing product browsing session..." | tee -a "$OUTPUT_FILE"
+    # Extract JWT token from response (Juice Shop uses JWT in body, not cookies)
+    JWT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.authentication.token // empty' 2>/dev/null)
+    if [ ! -z "$JWT_TOKEN" ] && [ "$JWT_TOKEN" != "null" ]; then
+        echo "[+] JWT Session Token captured: ${JWT_TOKEN:0:50}..." | tee -a "$OUTPUT_FILE"
+        # Save token to use in subsequent requests
+        echo "Authorization: Bearer $JWT_TOKEN" > /tmp/auth_header_${TIMESTAMP}.txt
+    fi
+    sleep 2
+    
+    # Browse products with auth token
+    echo "[*] Capturing authenticated product browsing..." | tee -a "$OUTPUT_FILE"
     for i in {1..5}; do
-        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
+        if [ ! -z "$JWT_TOKEN" ]; then
+            curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+                -b /tmp/cookies_${TIMESTAMP}.txt \
+                "http://$TARGET:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
+        else
+            curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
+                "http://$TARGET:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
+        fi
         sleep 1
     done
     
-    # Add to basket
+    # Add to basket with auth
     echo "[*] Intercepting basket operations..." | tee -a "$OUTPUT_FILE"
-    curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-        "http://$TARGET:3003/api/BasketItems" \
-        -H "Content-Type: application/json" \
-        -d '{"ProductId":1,"BasketId":"1","quantity":1}' > /dev/null 2>&1 || true
+    if [ ! -z "$JWT_TOKEN" ]; then
+        curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+            -b /tmp/cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/api/BasketItems/" \
+            -H "Content-Type: application/json" \
+            -d '{"ProductId":1,"quantity":1}' > /dev/null 2>&1 || true
+    fi
     sleep 1
     
-    # Get challenges
-    echo "[*] Capturing API token exchange..." | tee -a "$OUTPUT_FILE"
-    curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-        "http://$TARGET:3003/api/Challenges" > /dev/null 2>&1 || true
+    # Get challenges with auth
+    echo "[*] Capturing authenticated API requests..." | tee -a "$OUTPUT_FILE"
+    if [ ! -z "$JWT_TOKEN" ]; then
+        curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+            -b /tmp/cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/api/Challenges" > /dev/null 2>&1 || true
+        curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+            -b /tmp/cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/rest/basket/1" > /dev/null 2>&1 || true
+    fi
     sleep 1
     
     # More realistic traffic
@@ -338,11 +423,25 @@ if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
         sleep 2
     done
     
+    # Continue generating traffic for full capture duration
+    echo "[*] Continuing traffic generation for 40 more seconds..." | tee -a "$OUTPUT_FILE"
+    for round in {1..8}; do
+        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/rest/products/search?q=apple" > /dev/null 2>&1 || true
+        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/api/Quantitys" > /dev/null 2>&1 || true
+        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/rest/user/whoami" > /dev/null 2>&1 || true
+        sleep 5
+    done
+    
     echo "[+] Traffic generation complete" | tee -a "$OUTPUT_FILE"
 fi
 
 # Wait for capture to complete
-wait $TSHARK_PID 2>/dev/null || true
+echo "[*] Waiting for packet capture to complete..." | tee -a "$OUTPUT_FILE"
+wait $CAPTURE_BG_PID 2>/dev/null || true
+sleep 2
 
 echo "" | tee -a "$OUTPUT_FILE"
 echo "[PHASE 3] Deep Packet Analysis & Session Extraction" | tee -a "$OUTPUT_FILE"

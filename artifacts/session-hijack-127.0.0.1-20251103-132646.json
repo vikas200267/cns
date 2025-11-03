@@ -1,0 +1,140 @@
+{
+  "attack_info": {
+    "type": "Session Hijacking",
+    "method": "Passive Network Sniffing",
+    "timestamp": "2025-11-03T13:27:49.330045",
+    "pcap_file": "/workspaces/cns/artifacts/session-hijack-127.0.0.1-20251103-132646.pcap"
+  },
+  "statistics": {
+    "total_cookies": 0,
+    "total_tokens": 9,
+    "total_credentials": 0,
+    "total_vulnerabilities": 9,
+    "unique_cookies": 0,
+    "critical_vulns": 9,
+    "high_vulns": 0,
+    "medium_vulns": 0
+  },
+  "cookies": [],
+  "tokens": [
+    {
+      "type": "Authorization Header",
+      "value": "127.0.0.1",
+      "full_value": "127.0.0.1",
+      "timestamp": "2025-11-03T13:27:49.005339"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005853"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005887"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005906"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005927"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005947"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005965"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005982"
+    },
+    {
+      "type": "Authorization Header",
+      "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdG...",
+      "full_value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MjQsInVzZXJuYW1lIjoiIiwiZW1haWwiOiJ2aWN0aW0yMDI1MTEwMy0xMzI2NDZAaGlqYWNrLnRlc3QiLCJwYXNzd29yZCI6IjEwY2YwZmEzMGY0NjA2ZGFlOTY2NmM3MTZlOGQzMzNlIiwicm9sZSI6ImN1c3RvbWVyIiwiZGVsdXhlVG9rZW4iOiIiLCJsYXN0TG9naW5JcCI6IjAuMC4wLjAiLCJwcm9maWxlSW1hZ2UiOiIvYXNzZXRzL3B1YmxpYy9pbWFnZXMvdXBsb2Fkcy9kZWZhdWx0LnN2ZyIsInRvdHBTZWNyZXQiOiIiLCJpc0FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwidXBkYXRlZEF0IjoiMjAyNS0xMS0wMyAxMzoyNjo0OS4xMDQgKzAwOjAwIiwiZGVsZXRlZEF0IjpudWxsfSwiaWF0IjoxNzYyMTc2NDExfQ.xHr8IaXVtr_N_LCICUH440uqMfV7hSyxPLaf7kbYYukFp6dR2NTvFKQEL4tvIXHv8UoaRuEFIgub5eW60n8-WXzYUL0CHxfWalROm6vSF8gU2A_-yPl1vSIhbad6qfj-F3HR8mgibYUZFg2WmlG9ltM73SCgSmlKqQMPKmNWuJo",
+      "timestamp": "2025-11-03T13:27:49.005997"
+    }
+  ],
+  "credentials": [],
+  "vulnerabilities": [
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    },
+    {
+      "type": "Unencrypted Authentication",
+      "severity": "CRITICAL",
+      "detail": "Authorization header sent over HTTP"
+    }
+  ],
+  "risk_assessment": {
+    "overall_risk": "CRITICAL",
+    "exploitability": "Easy",
+    "impact": "Limited session access"
+  },
+  "recommendations": [
+    "1. IMMEDIATELY migrate to HTTPS/TLS for all traffic",
+    "2. Set Secure flag on all cookies",
+    "3. Set HttpOnly flag to prevent XSS",
+    "4. Implement SameSite=Strict on cookies",
+    "5. Never transmit credentials over HTTP",
+    "6. Use strong session tokens (256+ bits entropy)",
+    "7. Implement session binding to IP/User-Agent",
+    "8. Add session timeout and regeneration",
+    "9. Monitor for suspicious session patterns",
+    "10. Deploy HSTS headers"
+  ]
+}

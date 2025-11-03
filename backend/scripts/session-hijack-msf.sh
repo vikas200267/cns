@@ -509,18 +509,23 @@ if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
 fi
 
 echo "[*] Initializing packet capture on interface: $INTERFACE..." | tee -a "$OUTPUT_FILE"
-# Use tcpdump instead of tshark (more reliable for background captures)
-timeout 45 sudo tcpdump -i "$INTERFACE" -w "$PCAP_FILE" "tcp port 3003" > /dev/null 2>&1 &
 
-TSHARK_PID=$!
-sleep 3  # Give tcpdump time to start and initialize
+# Start packet capture in background with extended duration
+(
+    sudo tcpdump -i "$INTERFACE" -w "$PCAP_FILE" "tcp port 3003" 2>/dev/null &
+    TCPDUMP_PID=$!
+    sleep 60  # Capture for 60 seconds
+    sudo kill -TERM $TCPDUMP_PID 2>/dev/null || true
+    wait $TCPDUMP_PID 2>/dev/null || true
+) &
 
-# Verify tcpdump is running
-if ! ps -p $TSHARK_PID > /dev/null 2>&1; then
-    echo "[-] WARNING: Packet capture may have failed to start" | tee -a "$OUTPUT_FILE"
-else
-    echo "[+] Packet capture started successfully (PID: $TSHARK_PID)" | tee -a "$OUTPUT_FILE"
-fi
+CAPTURE_BG_PID=$!
+
+# Give tcpdump time to initialize properly
+echo "[*] Waiting for packet capture to initialize..." | tee -a "$OUTPUT_FILE"
+sleep 5
+
+echo "[+] Packet capture started successfully" | tee -a "$OUTPUT_FILE"
 
 # NOW generate traffic while capture is active
 if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
@@ -585,12 +590,23 @@ if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
         sleep 1
     done
     
-    echo "[+] Traffic generation complete (40+ HTTP requests generated)" | tee -a "$OUTPUT_FILE"
+    # Continue generating traffic for remaining capture time
+    echo "[*] Continuing traffic generation for full capture window..." | tee -a "$OUTPUT_FILE"
+    for round in {1..10}; do
+        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/rest/products/search?q=test${round}" > /dev/null 2>&1 || true
+        curl -s -b /tmp/msf_cookies_${TIMESTAMP}.txt \
+            "http://$TARGET:3003/api/Quantitys" > /dev/null 2>&1 || true
+        sleep 2
+    done
+    
+    echo "[+] Traffic generation complete (60+ HTTP requests generated)" | tee -a "$OUTPUT_FILE"
 fi
 
 # Wait for capture to complete
 echo "[*] Waiting for packet capture to complete..." | tee -a "$OUTPUT_FILE"
-wait $TSHARK_PID 2>/dev/null || true
+wait $CAPTURE_BG_PID 2>/dev/null || true
+sleep 2
 
 # Verify we captured packets
 if [ -f "$PCAP_FILE" ]; then

@@ -1,23 +1,3 @@
-{"level":"info","message":"Configuration loaded","targetCount":29,"taskCount":8,"timestamp":"2025-11-01T17:13:12.821Z"}
-{"error":"connect ENOENT /var/run/docker.sock","level":"warn","message":"Docker daemon not reachable - tasks will run in simulated mode","timestamp":"2025-11-01T17:13:12.842Z"}
-{"level":"info","message":"Lab Control API listening on port 3001","timestamp":"2025-11-01T17:13:12.847Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:13:35.997Z"}
-{"keyId":"operator-key-1","level":"info","message":"Starting task execution","script":"add-firewall.sh","target":"192.168.56.101","taskId":"add-firewall","taskInstanceId":"task_efb62880","timestamp":"2025-11-01T17:13:36.190Z"}
-{"level":"info","message":"Executing task directly (non-Docker mode)","script":"add-firewall.sh","target":"192.168.56.101","taskInstanceId":"task_efb62880","timestamp":"2025-11-01T17:13:36.191Z"}
-{"command":"bash /workspaces/cns/backend/scripts/add-firewall.sh 192.168.56.101","level":"info","message":"Executing command","timestamp":"2025-11-01T17:13:36.191Z"}
-{"apiKeyId":"operator-key-1","artifactPath":"/workspaces/cns/artifacts/firewall-192.168.56.101-20251101-171336.log","direct":true,"duration":0.022,"exitCode":0,"finishedAt":"2025-11-01T17:13:36.212Z","level":"info","message":"Task execution completed","startedAt":"2025-11-01T17:13:36.190Z","success":true,"target":"192.168.56.101","taskId":"add-firewall","taskInstanceId":"task_efb62880","timestamp":"2025-11-01T17:13:36.212Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:13:36.801Z"}
-{"keyId":"operator-key-1","level":"info","message":"Starting task execution","script":"nmap-scan.sh","target":"127.0.0.1","taskId":"nmap-scan","taskInstanceId":"task_c329771c","timestamp":"2025-11-01T17:13:42.912Z"}
-{"level":"info","message":"Executing task directly (non-Docker mode)","script":"nmap-scan.sh","target":"127.0.0.1","taskInstanceId":"task_c329771c","timestamp":"2025-11-01T17:13:42.912Z"}
-{"command":"bash /workspaces/cns/backend/scripts/nmap-scan.sh 127.0.0.1","level":"info","message":"Executing command","timestamp":"2025-11-01T17:13:42.914Z"}
-{"apiKeyId":"operator-key-1","artifactPath":"/workspaces/cns/artifacts/nmap-127.0.0.1-20251101-171342.txt","direct":true,"duration":0.162,"exitCode":0,"finishedAt":"2025-11-01T17:13:43.074Z","level":"info","message":"Task execution completed","startedAt":"2025-11-01T17:13:42.912Z","success":true,"target":"127.0.0.1","taskId":"nmap-scan","taskInstanceId":"task_c329771c","timestamp":"2025-11-01T17:13:43.074Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:13:45.990Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:13:47.688Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:13:56.176Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:14:06.109Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:14:16.192Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:14:26.937Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:14:36.553Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:14:46.083Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:14:56.252Z"}
-{"actualRole":"operator","ip":"127.0.0.1","keyId":"operator-key-1","level":"warn","message":"Authorization failed","requiredRole":"admin","timestamp":"2025-11-01T17:15:56.933Z"}
+{"level":"info","message":"Configuration loaded","targetCount":29,"taskCount":8,"timestamp":"2025-11-03T05:59:08.201Z"}
+{"error":"connect ENOENT /var/run/docker.sock","level":"warn","message":"Docker daemon not reachable - tasks will run in simulated mode","timestamp":"2025-11-03T05:59:08.230Z"}
+{"level":"info","message":"Lab Control API listening on port 3001","timestamp":"2025-11-03T05:59:08.238Z"}
