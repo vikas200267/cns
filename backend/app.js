@@ -187,12 +187,13 @@ function getRateLimiter(taskId) {
 
 // Input validation
 function validateTarget(target) {
-  // Accept localhost or valid IP format
+  // Accept localhost, valid IP format, or valid hostname/domain
   const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  const isValidFormat = target === 'localhost' || ipRegex.test(target);
+  const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  const isValidFormat = target === 'localhost' || ipRegex.test(target) || hostnameRegex.test(target);
   
   if (!isValidFormat) {
-    return { valid: false, error: 'Invalid IP format' };
+    return { valid: false, error: 'Invalid target format' };
   }
 
   // Check against whitelist
@@ -204,6 +205,9 @@ function validateTarget(target) {
 }
 
 function validateTaskId(taskId) {
+  // Debug logging
+  logger.debug('validateTaskId called', { taskId, tasksAvailable: Object.keys(tasks) });
+  
   // Prevent injection - only allow alphanumeric and hyphens
   if (!/^[a-z0-9-]+$/.test(taskId)) {
     return { valid: false, error: 'Invalid task ID format' };
@@ -211,6 +215,7 @@ function validateTaskId(taskId) {
 
   // Check against whitelist
   if (!tasks[taskId]) {
+    logger.warn('Task not found in whitelist', { taskId, availableTasks: Object.keys(tasks) });
     return { valid: false, error: 'Task not in whitelist' };
   }
 
