@@ -63,14 +63,21 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 console.log('✓ Frontend configured to connect to API at:', API_URL || 'same-origin (via proxy)');
 
-const LabControlApp = () => {
-  const [apiKey, setApiKey] = useState('');
+const LabControlApp = ({ user, authToken, onLogout }) => {
+  const [apiKey, setApiKey] = useState(user?.apiKey || '');
   const [target, setTarget] = useState('192.168.56.101');
   const [tasks, setTasks] = useState([]);
   const [output, setOutput] = useState('');
   const [logs, setLogs] = useState([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [confirmTask, setConfirmTask] = useState(null);
+
+  // Set API key from user data
+  useEffect(() => {
+    if (user?.apiKey) {
+      setApiKey(user.apiKey);
+    }
+  }, [user]);
 
   // Load tasks from backend (tasks.json via API or hardcoded)
   useEffect(() => {
@@ -456,15 +463,41 @@ const LabControlApp = () => {
                 <p className="text-sm text-gray-400">Isolated Lab Environment Only</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${apiKey ? 'bg-green-500' : 'bg-red-500'}`} />
-              <input
-                type="password"
-                placeholder="API Key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="px-3 py-1 bg-gray-800 rounded border border-gray-700"
-              />
+            <div className="flex items-center gap-4">
+              {/* User info */}
+              {user && (
+                <div className="flex items-center gap-3 mr-4">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-white">{user.name}</p>
+                    <p className="text-xs text-gray-400">{user.role}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-semibold">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                </div>
+              )}
+              
+              {/* API Key Status */}
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${apiKey ? 'bg-green-500' : 'bg-red-500'}`} />
+                <input
+                  type="password"
+                  placeholder="API Key"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="px-3 py-1 bg-gray-800 rounded border border-gray-700 w-48"
+                />
+              </div>
+              
+              {/* Logout Button */}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white text-sm font-medium transition-colors"
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         </div>

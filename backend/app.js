@@ -29,6 +29,9 @@ require('dotenv').config();
 
 const execAsync = promisify(exec);
 
+// Import authentication routes
+const authRoutes = require('./routes/auth');
+
 // In-memory task status storage for async execution
 const runningTasks = new Map();
 
@@ -62,6 +65,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Mount authentication routes
+app.use('/api/auth', authRoutes);
 
 // Load configuration files
 let apiKeys = {};

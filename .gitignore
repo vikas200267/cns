@@ -1,1 +1,16 @@
 node_modules
+
+# Environment files with secrets
+backend/.env
+backend/firebase-admin-key.json
+
+# Logs
+backend/logs/*.log
+
+# Data files
+backend/data/
+
+# Build artifacts
+artifacts/*.pcap
+artifacts/*.json
+artifacts/*.txt
