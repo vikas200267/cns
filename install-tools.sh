@@ -68,36 +68,53 @@ TOOLS_TO_INSTALL=""
 
 # Check and queue tools for installation
 check_tool() {
-    if ! command -v $1 &> /dev/null; then
-        TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL $2"
-        print_info "Will install: $1"
+    local cmd=$1
+    local pkg_alpine=$2
+    local pkg_debian=${3:-$2}  # Use Alpine package name as default if Debian not specified
+    
+    if ! command -v $cmd &> /dev/null; then
+        if command -v apk &> /dev/null; then
+            TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL $pkg_alpine"
+        else
+            TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL $pkg_debian"
+        fi
+        print_info "Will install: $cmd"
     else
-        print_success "$1 is already installed"
+        print_success "$cmd is already installed"
     fi
 }
 
 # Network scanning and analysis tools
-check_tool nmap nmap
-check_tool nikto nikto
-check_tool tcpdump tcpdump
-check_tool tshark tshark
-check_tool ncat nmap-ncat
+check_tool nmap nmap nmap
+check_tool nikto nikto nikto
+check_tool tcpdump tcpdump tcpdump
+check_tool tshark tshark tshark
+check_tool ncat nmap-ncat ncat
 
 # System utilities
-check_tool jq jq
-check_tool curl curl
-check_tool wget wget
-check_tool git git
+check_tool jq jq jq
+check_tool curl curl curl
+check_tool wget wget wget
+check_tool git git git
+check_tool timeout coreutils coreutils
+check_tool xxd vim vim-common
 
 # Python
-check_tool python3 python3
-check_tool pip3 py3-pip
+check_tool python3 python3 python3
+check_tool pip3 py3-pip python3-pip
 
-# Firewall
-check_tool iptables iptables
+# Firewall and network
+check_tool iptables iptables iptables
+check_tool nc netcat-openbsd netcat
 
 # Text processing
-check_tool awk gawk
+check_tool awk gawk gawk
+check_tool sed sed sed
+check_tool grep grep grep
+
+# Process management
+check_tool ps procps procps
+check_tool killall psmisc psmisc
 
 # Install queued tools
 if [ ! -z "$TOOLS_TO_INSTALL" ]; then
@@ -116,8 +133,31 @@ else
     print_success "All system tools already installed"
 fi
 
-# Step 3: Fix nikto symlink (if needed)
-print_header "Step 3: Configuring Nikto"
+# Step 3: Install Wireshark/TShark properly
+print_header "Step 3: Installing Wireshark/TShark"
+
+if ! command -v tshark &> /dev/null; then
+    print_info "Installing Wireshark suite (tshark)..."
+    
+    if command -v apk &> /dev/null; then
+        sudo apk add wireshark wireshark-common
+    elif command -v apt-get &> /dev/null; then
+        sudo apt-get install -y tshark wireshark-common
+        # Add user to wireshark group for non-root capture
+        if [ ! -z "$SUDO_USER" ]; then
+            sudo usermod -aG wireshark $SUDO_USER || true
+        fi
+    elif command -v yum &> /dev/null; then
+        sudo yum install -y wireshark wireshark-cli
+    fi
+    
+    print_success "Wireshark/TShark installed"
+else
+    print_success "TShark is already installed"
+fi
+
+# Step 4: Fix nikto symlink (if needed)
+print_header "Step 4: Configuring Nikto"
 if [ -f "/usr/bin/nikto.pl" ] && [ ! -f "/usr/bin/nikto" ]; then
     sudo ln -sf /usr/bin/nikto.pl /usr/bin/nikto
     print_success "Nikto symlink created"
@@ -127,8 +167,37 @@ else
     print_error "Nikto not found. It may need manual installation."
 fi
 
-# Step 4: Install Python Packages
-print_header "Step 4: Installing Python Packages"
+# Step 4: Fix nikto symlink (if needed)
+print_header "Step 4: Configuring Nikto"
+if [ -f "/usr/bin/nikto.pl" ] && [ ! -f "/usr/bin/nikto" ]; then
+    sudo ln -sf /usr/bin/nikto.pl /usr/bin/nikto
+    print_success "Nikto symlink created"
+elif command -v nikto &> /dev/null; then
+    print_success "Nikto is properly configured"
+else
+    print_error "Nikto not found. It may need manual installation."
+fi
+
+# Step 5: Configure tcpdump permissions
+print_header "Step 5: Configuring Packet Capture Permissions"
+
+if command -v tcpdump &> /dev/null; then
+    # Set capabilities for non-root packet capture
+    TCPDUMP_PATH=$(which tcpdump)
+    
+    if command -v setcap &> /dev/null; then
+        print_info "Setting packet capture capabilities..."
+        sudo setcap cap_net_raw,cap_net_admin=eip "$TCPDUMP_PATH" 2>/dev/null || print_info "Could not set capabilities (may need root)"
+        print_success "Packet capture configured"
+    else
+        print_info "setcap not available, tcpdump will require sudo"
+    fi
+else
+    print_error "tcpdump not found"
+fi
+
+# Step 6: Install Python Packages
+print_header "Step 6: Installing Python Packages"
 
 if [ -f "requirements-python.txt" ]; then
     print_info "Installing from requirements-python.txt..."
@@ -156,8 +225,8 @@ else
     done
 fi
 
-# Step 5: Install Node.js Dependencies
-print_header "Step 5: Installing Node.js Dependencies"
+# Step 7: Install Node.js Dependencies
+print_header "Step 7: Installing Node.js Dependencies"
 
 install_npm_deps() {
     local dir=$1
@@ -182,7 +251,7 @@ install_npm_deps "frontend" "frontend"
 
 # Juice Shop dependencies
 if [ ! -d "juice-shop" ] || [ ! -f "juice-shop/package.json" ]; then
-    print_header "Step 6: Installing OWASP Juice Shop"
+    print_header "Step 8: Installing OWASP Juice Shop"
     print_info "Cloning Juice Shop from GitHub..."
     
     if [ -d "juice-shop" ]; then
@@ -199,8 +268,8 @@ else
     install_npm_deps "juice-shop" "Juice Shop"
 fi
 
-# Step 6: Verify Installation
-print_header "Step 7: Verifying Installation"
+# Step 9: Verify Installation
+print_header "Step 9: Verifying Installation"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -225,11 +294,15 @@ verify_tool "nikto" "-Version"
 verify_tool "tcpdump" "--version"
 verify_tool "tshark" "--version"
 verify_tool "jq" "--version"
+verify_tool "curl" "--version"
 verify_tool "python3" "--version"
 verify_tool "pip3" "--version"
 verify_tool "node" "--version"
 verify_tool "npm" "--version"
 verify_tool "iptables" "--version"
+verify_tool "xxd" "-v"
+verify_tool "timeout" "--version"
+verify_tool "nc" "-h"
 
 echo ""
 echo "Python Packages:"

