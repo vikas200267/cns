@@ -5,8 +5,42 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin SDK
-const serviceAccount = require('../firebase-admin-key.json');
+// Flexible Firebase Admin SDK initialization
+// Priority:
+// 1. FIREBASE_ADMIN_KEY_PATH -> path to JSON file
+// 2. Environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID)
+// 3. ./firebase-admin-key.json (legacy/local file)
+
+let serviceAccount;
+try {
+  if (process.env.FIREBASE_ADMIN_KEY_PATH) {
+    // Allow absolute or relative path
+    serviceAccount = require(process.env.FIREBASE_ADMIN_KEY_PATH);
+    console.log('Using Firebase admin key from FIREBASE_ADMIN_KEY_PATH');
+  } else if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PROJECT_ID) {
+    // Build service account object from environment vars (private key may contain '\n' sequences)
+    serviceAccount = {
+      type: 'service_account',
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || '',
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID || '',
+      auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: 'https://oauth2.googleapis.com/token',
+      auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509 || ''
+    };
+    console.log('Using Firebase admin credentials from environment variables');
+  } else {
+    // Fallback to local file (same behavior as before)
+    serviceAccount = require('../firebase-admin-key.json');
+    console.log('Using local backend/firebase-admin-key.json');
+  }
+} catch (err) {
+  console.error('Failed to load Firebase Admin credentials:', err && err.message ? err.message : err);
+  throw err;
+}
 
 if (!admin.apps.length) {
   admin.initializeApp({
